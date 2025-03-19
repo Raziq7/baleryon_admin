@@ -9,6 +9,8 @@ import connect from "./connect/connect.js"
 import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
 import productRouter from "./routes/productRouter.js";
 import userManagmentRouter from "./routes/userManagmentRouter.js"
+import authRouter from "./routes/authRouter.js";
+
 import sanitizedConfig from "./config.js";
 
 dotenv.config();
@@ -32,7 +34,7 @@ app.use(express.json());
 connect().then(() => console.log("DB connected"));
 
 
-// app.use("/api/auth/", authRouter);
+app.use("/api/auth/", authRouter);
 app.use("/api/admin/product/", productRouter);
 
 // user managment router
