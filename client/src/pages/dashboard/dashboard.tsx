@@ -3,7 +3,7 @@ import React from "react";
 import SideMenu from "./components/SideMenu";
 import AppNavbar from "./components/AppNavbar";
 
-function Dashboard() {
+function Dashboard({ children }) {
   return (
     <Box sx={{ display: "flex" }}>
       <SideMenu />
@@ -21,12 +21,15 @@ function Dashboard() {
         <Stack
           spacing={2}
           sx={{
-            alignItems: "center",
+            // alignItems: "center",
             mx: 3,
             pb: 5,
             mt: { xs: 8, md: 0 },
           }}
-        ></Stack>
+        >
+          {/* Render children here */}
+          {children}
+        </Stack>
       </Box>
     </Box>
   );
