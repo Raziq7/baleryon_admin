@@ -51,17 +51,13 @@ export const authController = asyncHandler(async (req, res) => {
 
   // Create the new admin
   const admin = new Admin({
-    firstName,
-    lastName: lastName || "",
     email,
-    phone: mobile,
     password: hashedPassword,
-    gender: gender || "Not Specified",
-    isActive: true,
+    isActive: false,
   });
 
   // Save admin to the database
-  await Admin.save();
+  await admin.save();
 
 
   const token = generateToken(admin._id);
