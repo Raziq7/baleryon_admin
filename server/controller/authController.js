@@ -9,7 +9,6 @@ const isValidEmail = (email) => {
   return emailRegex.test(email);
 };
 
-
 // Function for hashing passwords
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
@@ -63,15 +62,18 @@ export const authController = asyncHandler(async (req, res) => {
   // Save admin to the database
   await Admin.save();
 
-
   const token = generateToken(admin._id);
 
-    console.log("tokentokentokentokentokentoken:", token);
+  console.log("tokentokentokentokentokentoken:", token);
 
-    res.status(200).json({ message: "OTP verified successfully", token, admin: { email: admin.email, name: admin.firstName, adminId: admin._id } });
-
+  res
+    .status(200)
+    .json({
+      message: "OTP verified successfully",
+      token,
+      admin: { email: admin.email, name: admin.firstName, adminId: admin._id },
+    });
 });
-
 
 export const loginController = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
@@ -92,13 +94,13 @@ export const loginController = asyncHandler(async (req, res) => {
     await Admin.save();
     const token = generateToken(admin._id);
 
-    res
-      .status(200)
-      .json({
-        token,
-        admin: { email: admin.email, name: admin.firstName, adminId: admin._id },
-      });
-  } catch (error) {}
+    res.status(200).json({
+      token,
+      admin: { email: admin.email, name: admin.firstName, adminId: admin._id },
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Server Error" });
+  }
 });
 
 // export const adminLogoutController = asyncHandler(async (req, res) => {
