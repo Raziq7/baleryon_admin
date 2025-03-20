@@ -1,7 +1,7 @@
 import { Box, Stack } from "@mui/material";
-import React from "react";
 import SideMenu from "./components/SideMenu";
 import AppNavbar from "./components/AppNavbar";
+import Header from "./components/Header";
 
 function Dashboard({ children }) {
   return (
