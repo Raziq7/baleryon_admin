@@ -1,12 +1,18 @@
-import { StyledEngineProvider } from "@mui/material"
-import SignIn from "./pages/credintials/signin"
+import { CssBaseline, StyledEngineProvider } from "@mui/material";
+import SignIn from "./pages/credintials/signin";
+import AppTheme from "./theme/AppTheme";
+import Dashboard from "./pages/dashboard/dashboard";
 
-function App() {
+function App(props: { disableCustomTheme?: boolean }) {
   return (
     <StyledEngineProvider injectFirst>
-      <SignIn />
+      <AppTheme {...props}>
+        <CssBaseline enableColorScheme />
+        {/* <SignIn /> */}
+        <Dashboard />
+      </AppTheme>
     </StyledEngineProvider>
-  )
+  );
 }
 
-export default App
+export default App;

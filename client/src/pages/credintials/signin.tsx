@@ -2,9 +2,7 @@ import * as React from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
-import CssBaseline from '@mui/material/CssBaseline';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import Divider from '@mui/material/Divider';
 import FormLabel from '@mui/material/FormLabel';
 import FormControl from '@mui/material/FormControl';
 import Link from '@mui/material/Link';
@@ -13,10 +11,9 @@ import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
-import ForgotPassword from '../../components/ForgotPassword';
-import { GoogleIcon, FacebookIcon, SitemarkIcon } from '../../components/CustomIcons';
-import AppTheme from '../../theme/AppTheme';
-import ColorModeSelect from '../../theme/ColorModeSelect';
+import ForgotPassword from './components/ForgotPassword';
+import { authLogin } from '../../api/auth';
+// import ColorModeSelect from '../../theme/ColorModeSelect';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: 'flex',
@@ -60,7 +57,7 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
-export default function SignIn(props: { disableCustomTheme?: boolean }) {
+export default function SignIn() {
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
@@ -75,16 +72,14 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
     setOpen(false);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     if (emailError || passwordError) {
       event.preventDefault();
       return;
     }
     const data = new FormData(event.currentTarget);
-    console.log({
-      email: data.get('email'),
-      password: data.get('password'),
-    });
+    const res = await authLogin(data.get('email') as string, data.get('password') as string)
+    console.log(res);
   };
 
   const validateInputs = () => {
@@ -115,18 +110,16 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
   };
 
   return (
-    <AppTheme {...props}>
-      <CssBaseline enableColorScheme />
       <SignInContainer direction="column" justifyContent="space-between">
-        <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} />
+        {/* <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} /> */}
         <Card variant="outlined">
-          <SitemarkIcon />
+          {/* <SitemarkIcon /> */}
           <Typography
             component="h1"
             variant="h4"
-            sx={{ width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
+            sx={{ textAlign: "center", width: '100%', fontSize: 'clamp(2rem, 10vw, 2.15rem)' }}
           >
-            Sign in
+            Sign In
           </Typography>
           <Box
             component="form"
@@ -227,6 +220,5 @@ export default function SignIn(props: { disableCustomTheme?: boolean }) {
           </Box> */}
         </Card>
       </SignInContainer>
-    </AppTheme>
   );
 }
