@@ -1,12 +1,14 @@
 import { CssBaseline, StyledEngineProvider } from "@mui/material";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import SignIn from "./pages/credintials/signin";
 import AppTheme from "./theme/AppTheme";
-import Dashboard from "./pages/dashboard/dashboard";
+import Dashboard from "./pages/dashboard/Dashboard";
 import Home from "./pages/home/Home"; // Make sure you import Home
+import useAuthCheck from './customHook/useAuthCheck.tsx'; // Import the custom hook
 
 function App(props: { disableCustomTheme?: boolean }) {
+  useAuthCheck();
   return (
     <StyledEngineProvider injectFirst>
       <AppTheme {...props}>

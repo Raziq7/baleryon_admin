@@ -79,7 +79,12 @@ export default function SignIn() {
     }
     const data = new FormData(event.currentTarget);
     const res = await authLogin(data.get('email') as string, data.get('password') as string)
-    console.log(res);
+    console.log(res.admin,"aklsdjflaksjdfalkj");
+    
+    localStorage.setItem('token',res.token);
+    localStorage.setItem('isAdminExit',JSON.stringify(res.admin));
+
+
   };
 
   const validateInputs = () => {

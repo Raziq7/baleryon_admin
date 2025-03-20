@@ -1,6 +1,8 @@
 import api from "../utils/baseUrl";
 
 export const authLogin = async (email: string, password: string) => {
+  alert(email);
+  alert(password);
   try {
     const response = await api.post('/api/auth/login', {
       email,

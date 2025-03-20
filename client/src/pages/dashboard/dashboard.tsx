@@ -27,6 +27,7 @@ function Dashboard({ children }) {
             mt: { xs: 8, md: 0 },
           }}
         >
+          <Header />
           {/* Render children here */}
           {children}
         </Stack>

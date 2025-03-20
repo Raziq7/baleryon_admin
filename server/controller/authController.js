@@ -62,8 +62,6 @@ export const authController = asyncHandler(async (req, res) => {
 
   const token = generateToken(admin._id);
 
-    console.log("tokentokentokentokentokentoken:", token);
-
     res.status(200).json({ message: "OTP verified successfully", token, admin: { email: admin.email, name: admin.firstName, adminId: admin._id } });
 
 });
@@ -83,11 +81,10 @@ export const loginController = asyncHandler(async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
-
-    Admin.isActive = true;
-    await Admin.save();
+    
+    admin.isActive = true;
+    await admin.save();
     const token = generateToken(admin._id);
-
     res
       .status(200)
       .json({
