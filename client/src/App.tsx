@@ -8,8 +8,8 @@ function App(props: { disableCustomTheme?: boolean }) {
     <StyledEngineProvider injectFirst>
       <AppTheme {...props}>
         <CssBaseline enableColorScheme />
-        {/* <SignIn /> */}
-        <Dashboard />
+        <SignIn />
+        {/* <Dashboard /> */}
       </AppTheme>
     </StyledEngineProvider>
   );
