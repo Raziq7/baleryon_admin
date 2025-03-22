@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React, { useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
@@ -13,6 +13,8 @@ import MuiCard from '@mui/material/Card';
 import { styled } from '@mui/material/styles';
 import ForgotPassword from './components/ForgotPassword';
 import { authLogin } from '../../api/auth';
+import { Alert } from '@mui/material';
+import { useNavigate } from 'react-router';
 // import ColorModeSelect from '../../theme/ColorModeSelect';
 
 const Card = styled(MuiCard)(({ theme }) => ({
@@ -57,12 +59,39 @@ const SignInContainer = styled(Stack)(({ theme }) => ({
   },
 }));
 
+interface AuthLoginResponse {
+  status: number;
+  token?: string;
+  admin?: boolean;
+  response?: {
+    data: {
+      message: string;
+    };
+  };
+}
+
+
 export default function SignIn() {
+
+  const navigate = useNavigate();
+
   const [emailError, setEmailError] = React.useState(false);
   const [emailErrorMessage, setEmailErrorMessage] = React.useState('');
   const [passwordError, setPasswordError] = React.useState(false);
   const [passwordErrorMessage, setPasswordErrorMessage] = React.useState('');
+  const [loginError, setLoginError] = React.useState('');
   const [open, setOpen] = React.useState(false);
+
+  const isAuthenticated = localStorage.getItem('isAdminExit')
+  ? true
+  : false;
+
+  useEffect(()=>{
+
+    if(isAuthenticated){
+      navigate('/')
+    }
+  },[isAuthenticated,navigate])
 
   const handleClickOpen = () => {
     setOpen(true);
@@ -77,14 +106,29 @@ export default function SignIn() {
     if (emailError || passwordError) {
       return;
     }
-    const data = new FormData(event.currentTarget);
-    const res = await authLogin(data.get('email') as string, data.get('password') as string)
-    console.log(res.admin,"aklsdjflaksjdfalkj");
+
     
-    localStorage.setItem('token',res.token);
-    localStorage.setItem('isAdminExit',JSON.stringify(res.admin));
+    const data = new FormData(event.currentTarget);
+    const res = await authLogin(data.get('email') as string, data.get('password') as string) as AuthLoginResponse;
 
-
+    if (res.status === 400) {
+      setEmailError(true);
+      // setEmailErrorMessage(res.response?.data.message || 'An error occurred');
+      setLoginError(res.response?.data.message || 'An error occurred');
+      // setPasswordError(true);
+      // setPasswordErrorMessage('Password must be at least 6 characters long.');
+    }
+    
+    if (res.status === 200) {
+      setEmailError(false);
+      setEmailErrorMessage('');
+      setPasswordError(false);
+      setPasswordErrorMessage('');
+      setLoginError('');
+      localStorage.setItem('token', res.token || '');
+      localStorage.setItem('isAdminExit', JSON.stringify(res.admin));
+    }
+    
   };
 
   const validateInputs = () => {
@@ -126,6 +170,15 @@ export default function SignIn() {
           >
             Sign In
           </Typography>
+
+          {/* <Typography
+            // component="span"
+            sx={{ textAlign: "center", width: '100%', fontSize: 'clamp(1.5rem, 5vw, 1.0rem)',color:"red" }}
+          >
+           {loginError}
+          </Typography> */}
+         {loginError && <Alert severity="error">{loginError}.</Alert>} 
+
           <Box
             component="form"
             onSubmit={handleSubmit}

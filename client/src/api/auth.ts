@@ -1,15 +1,17 @@
 import api from "../utils/baseUrl";
 
 export const authLogin = async (email: string, password: string) => {
-  alert(email);
-  alert(password);
   try {
     const response = await api.post('/api/auth/login', {
       email,
       password,
     });
-    return response.data;
+    console.log(response,"responseresponseresponse");
+
+    return response;
   } catch (error) {
-    throw new Error('Login failed');
+    console.log(error,"ererererereerererererer");
+    
+    return error;
   }
 };
