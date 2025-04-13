@@ -62,7 +62,7 @@ export const addProductController = asyncHandler(async (req, res) => {
    console.log(imageUrls,"heheheheheheheheheheheheheheheheeheh");
 
    
-   const parsedSizes = sizes ? JSON.parse(sizes) : [];
+   const parsedSizes = sizes ? sizes : [];
 if (!Array.isArray(parsedSizes) || parsedSizes.some(size => !size.size || !size.quantity)) {
   return res.status(400).json({ message: "Invalid sizes format. Each size must include size and quantity." });
 }

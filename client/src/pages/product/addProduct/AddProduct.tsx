@@ -151,20 +151,13 @@ const AddProduct = () => {
     // Append cropped images
     if (croppedImages && croppedImages.length > 0) {
       croppedImages.forEach((file) => {
-        formDataToSend.append('files', files);
+        formDataToSend.append('files', file);
       });
-    } else {
-      setIsLoading(false);
-      setUploadErr('No images selected!');
-      return;
     }
 
     try {
       // Make API request to add the product (you'll replace the URL here with your API endpoint)
-      await axios.post('http://localhost:8000/api/admin/product/addProduct', {
-        method: 'POST',
-        body: formDataToSend,
-      });
+      await axios.post('http://localhost:8000/api/admin/product/addProduct',formDataToSend);
 
       setIsLoading(false);
       alert('Product added successfully!');
