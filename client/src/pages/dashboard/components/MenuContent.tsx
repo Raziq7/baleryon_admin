@@ -15,10 +15,10 @@ import HelpRoundedIcon from '@mui/icons-material/HelpRounded';
 import { useNavigate } from 'react-router';
 
 const mainListItems = [
-  { text: 'Home', icon: <HomeRoundedIcon /> },
+  { text: 'Home', icon: <HomeRoundedIcon />,url:"Home" },
   { text: 'Product Management', icon: <AnalyticsRoundedIcon />,url:"productManagment" },
-  { text: 'Clients', icon: <PeopleRoundedIcon /> },
-  { text: 'Tasks', icon: <AssignmentRoundedIcon /> },
+  { text: 'Clients', icon: <PeopleRoundedIcon />,url:"clients" },
+  { text: 'Tasks', icon: <AssignmentRoundedIcon />,url:"tasks" },
 ];
 
 const secondaryListItems = [
@@ -34,7 +34,7 @@ export default function MenuContent() {
     <Stack sx={{ flexGrow: 1, p: 1, justifyContent: 'space-between' }}>
       <List dense>
         {mainListItems.map((item, index) => (
-          <ListItem key={index} disablePadding sx={{ display: 'block' }} onClick={()=>navigate(item.url)} >
+          <ListItem key={index} disablePadding sx={{ display: 'block' }} onClick={()=>navigate(`/${item.url}`)} >
             <ListItemButton selected={index === 0}>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />

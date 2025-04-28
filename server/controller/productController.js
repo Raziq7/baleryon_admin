@@ -16,83 +16,109 @@ import { uploadFileToS3 } from "../utils/s3Utils.js";
 // };
 
 
-// @desc    Add Product admin
+// @desc    Add Product (admin)
 // @route   POST /api/admin/product/addProduct
 // @access  lead
 export const addProductController = asyncHandler(async (req, res) => {
   try {
-    // 1. Validation
-    const { productName, description, price, category, color, sizes } = req.body;
+    // Sanitize and parse req.body
+    const body = JSON.parse(JSON.stringify(req.body)); // strip [Object: null prototype]
 
-    console.log(req.body,"askldjfaljkdslfkajsdlkjfalkjd");
-    console.log(req.files,"filefilefilefilefileiiiiiiiiiii");
+    // Coerce fields
+    const productName = body.productName?.trim();
+    const description = body.description?.trim();
+    const price = Number(body.price);
+    const discount = Number(body.discount || 0);
+    const purchasePrice = Number(body.purchasePrice || 0);
+    const category = body.category?.trim();
+    const note = body.note || "";
+    const productDetails = body.productDetails || "";
+    const isReturn = body.isReturn === "true" || body.isReturn === true;
+    const file = body.file || "";
+    const color = body.color || "";
 
-    
-    // Check for missing required fields
-    if (!productName || !description || !price) {
-      return res.status(400).json({ message: "Please provide product name, description, and price" });
+    // === VALIDATION ===
+    if (!productName || !description || !price || !category) {
+      return res.status(400).json({
+        message: "Missing required fields: productName, description, price, or category.",
+      });
     }
 
-    // Validate price
     if (isNaN(price) || price <= 0) {
-      return res.status(400).json({ message: "Price must be a valid number greater than 0" });
+      return res.status(400).json({ message: "Price must be a valid number greater than 0." });
     }
 
-    // Optional: Validate size, color, or other fields (add more checks as needed)
-    if (!category) {
-      return res.status(400).json({ message: "Please provide a category" });
+    // === SIZE PARSING ===
+    let parsedSizes = [];
+    try {
+      const rawSizes = body.sizes;
+      const sizesArray = typeof rawSizes === "string" ? JSON.parse(rawSizes) : rawSizes;
+
+      if (!Array.isArray(sizesArray)) throw new Error();
+
+      parsedSizes = sizesArray
+        .map((s) => ({
+          size: s.size?.trim(),
+          quantity: Number(s.quantity),
+        }))
+        .filter((s) => s.size && !isNaN(s.quantity));
+
+      if (parsedSizes.length === 0) {
+        return res.status(400).json({
+          message: "Each size must include a valid 'size' and a numeric 'quantity'.",
+        });
+      }
+    } catch (err) {
+      return res.status(400).json({
+        message: "Invalid sizes format. Expected an array of { size, quantity }.",
+      });
     }
 
-   // 2. Handle file upload to S3 (only one file at a time)
-   let imageUrls = [];
-   if (req.files) {
-     try {
-       // Upload the single file to S3
-       for (const file of req.files) {
-        const imageUrl = await uploadFileToS3(file, sanitizedConfig.AWS_BUCKET_NAME);
-        imageUrls.push(imageUrl); // Push the uploaded file's URL into imageUrls
+    // === IMAGE UPLOAD ===
+    let imageUrls = [];
+    if (req.files && req.files.length > 0) {
+      try {
+        for (const file of req.files) {
+          const imageUrl = await uploadFileToS3(file, process.env.AWS_BUCKET_NAME);
+          imageUrls.push(imageUrl);
+        }
+      } catch (error) {
+        return res.status(400).json({ message: error.message });
+      }
+    } else {
+      return res.status(400).json({ message: "Please upload at least one image." });
     }
-     } catch (error) {
-       return res.status(400).json({ message: error.message });
-     }
-   }else{
-      return res.status(400).json({ message: "Please provide a image" });
-   }
 
-   console.log(imageUrls,"heheheheheheheheheheheheheheheheeheh");
-
-   
-   const parsedSizes = sizes ? sizes : [];
-if (!Array.isArray(parsedSizes) || parsedSizes.some(size => !size.size || !size.quantity)) {
-  return res.status(400).json({ message: "Invalid sizes format. Each size must include size and quantity." });
-}
-
-    // 2. Insert into the database
+    // === CREATE PRODUCT ===
     const newProduct = new Product({
       productName,
       description,
       price,
-      discount: req.body.discount || 0,
+      discount,
+      purchasePrice,
       category,
-      note: req.body.note || "",
-      sizes: parsedSizes, // Use parsed sizes
-      file: req.body.file || "",
-      color: color || "",
-      productDetails: req.body.productDetails || "",
-      isReturn: req.body.isReturn || false,
+      note,
+      sizes: parsedSizes,
+      file,
+      color,
+      productDetails,
+      isReturn,
       image: imageUrls,
     });
 
-    // Save the product to the database
     await newProduct.save();
 
-    // 3. Respond with success
-    res.status(201).json({ message: "Product added successfully", product: newProduct });
+    return res.status(201).json({
+      message: "Product added successfully",
+      product: newProduct,
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server Error" });
+    console.error("Error in addProductController:", error);
+    return res.status(500).json({ message: "Internal Server Error" });
   }
 });
+
+
 
 
 // @desc    Get paginated list of products

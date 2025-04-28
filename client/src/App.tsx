@@ -31,7 +31,7 @@ function App(props: { disableCustomTheme?: boolean }) {
             {/* SignIn route */}
             <Route path="/signin" element={<SignIn />} />
 
-            <Route path="/productManagment" element={<Dashboard><ProductListing /></Dashboard>} />
+            <Route path="productManagment" element={<Dashboard><ProductListing /></Dashboard>} />
 
             {/* Add Product route */}
             <Route path="/productManagment/addProduct" element={<Dashboard><AddProduct /></Dashboard>} />
