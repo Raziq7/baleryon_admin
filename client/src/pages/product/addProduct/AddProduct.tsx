@@ -381,7 +381,7 @@ const AddProduct = () => {
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                // justifyContent: 'space-between',
                 backgroundColor: color.hex,
                 padding: 2,
                 borderRadius: 1,

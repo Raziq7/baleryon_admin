@@ -8,6 +8,7 @@ import Home from "./pages/home/Home"; // Make sure you import Home
 import useAuthCheck from './customHook/useAuthCheck.tsx'; // Import the custom hook
 import ProductListing from "./pages/product/ProductListing.tsx";
 import AddProduct from "./pages/product/addProduct/AddProduct.tsx";
+import Settings from "./pages/settings/Settings.tsx";
 
 function App(props: { disableCustomTheme?: boolean }) {
   useAuthCheck();
@@ -35,6 +36,9 @@ function App(props: { disableCustomTheme?: boolean }) {
 
             {/* Add Product route */}
             <Route path="/productManagment/addProduct" element={<Dashboard><AddProduct /></Dashboard>} />
+
+            <Route path="/settings" element={<Dashboard><Settings /></Dashboard>} />
+
           </Routes>
         {/* </Router> */}
       </AppTheme>
