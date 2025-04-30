@@ -16,12 +16,12 @@ export default function DataTable() {
     const token = localStorage.getItem("token");
 
     api
-      .get("/admin/userManagment/", {
+      .get("/admin/userManagment/users/list", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
         setRows(
-          response.data?.user.map((item) => ({
+          response.data?.users.map((item) => ({
             id: item._id,
             firstName: item.firstName,
             lastName: item.lastName,
@@ -47,10 +47,10 @@ export default function DataTable() {
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 120 },
-    { field: "productName", headerName: "Product name", width: 160 },
+    { field: "firstName", headerName: "Name", width: 160 },
     {
-      field: "description",
-      headerName: "Description",
+      field: "email",
+      headerName: "Email",
       width: 200,
       renderCell: (params) => (
         <div
@@ -65,18 +65,17 @@ export default function DataTable() {
       ),
     },
     {
-      field: "productPrice",
-      headerName: "Product Price",
+      field: "phone",
+      headerName: "Phone",
       type: "number",
       width: 160,
     },
     {
-      field: "discount",
-      headerName: "Discount Price",
-      type: "number",
+      field: "gender",
+      headerName: "Gender",
       width: 160,
     },
-    { field: "category", headerName: "Category", width: 160 },
+    { field: "isActive", headerName: "Active", width: 160 },
   ];
 
   return (

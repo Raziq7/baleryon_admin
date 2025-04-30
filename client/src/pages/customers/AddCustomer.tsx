@@ -13,7 +13,6 @@ import {
   Alert
 } from '@mui/material';
 import { PhotoCamera } from '@mui/icons-material';
-import axios from 'axios';
 import api from '../../utils/baseUrl';
 
 const AddUserProfile = () => {
@@ -67,7 +66,7 @@ const AddUserProfile = () => {
         data.append(key, formData[key]);
       }
 
-      await api.post('/admin/userManagment/create', data);
+      await api.post('/admin/userManagment/users/create', data);
 
       setSuccessMessage("User profile created successfully!");
       setFormData({

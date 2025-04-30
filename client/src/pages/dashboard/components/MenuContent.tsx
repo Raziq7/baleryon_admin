@@ -22,9 +22,9 @@ const mainListItems = [
 ];
 
 const secondaryListItems = [
-  { text: 'Settings', icon: <SettingsRoundedIcon /> },
-  { text: 'About', icon: <InfoRoundedIcon /> },
-  { text: 'Feedback', icon: <HelpRoundedIcon /> },
+  { text: 'Settings', icon: <SettingsRoundedIcon />,link:"settings" },
+  { text: 'About', icon: <InfoRoundedIcon />,link:"about" },
+  { text: 'Feedback', icon: <HelpRoundedIcon />,link:"feedback" },
 ];
 
 export default function MenuContent() {
@@ -44,7 +44,7 @@ export default function MenuContent() {
       </List>
       <List dense>
         {secondaryListItems.map((item, index) => (
-          <ListItem key={index} disablePadding sx={{ display: 'block' }}>
+          <ListItem key={index} disablePadding sx={{ display: 'block' }} onClick={()=>navigate(`/${item.link}`)}>
             <ListItemButton>
               <ListItemIcon>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
