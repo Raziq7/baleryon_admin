@@ -3,13 +3,15 @@ import { Routes, Route } from "react-router-dom";
 
 import SignIn from "./pages/credintials/signin";
 import AppTheme from "./theme/AppTheme";
-import Dashboard from "./pages/dashboard/Dashboard";
+import Dashboard from "./pages/dashboard/dashboard.tsx";
 
 import Customer from "./pages/customers/Customers.js";
+import AddCustomer from "./pages/customers/AddCustomer.js";
 import Home from "./pages/home/Home"; // Make sure you import Home
 import useAuthCheck from './customHook/useAuthCheck.tsx'; // Import the custom hook
 import ProductListing from "./pages/product/ProductListing.tsx";
 import AddProduct from "./pages/product/addProduct/AddProduct.tsx";
+import Settings from "./pages/settings/Settings.tsx";
 
 function App(props: { disableCustomTheme?: boolean }) {
   useAuthCheck();
@@ -40,6 +42,8 @@ function App(props: { disableCustomTheme?: boolean }) {
 
             {/* User Manager */}
             <Route path="clients" element={<Dashboard><Customer /></Dashboard>} />
+            <Route path="clients/add" element={<Dashboard><AddCustomer /></Dashboard>} />
+            <Route path="/settings" element={<Dashboard><Settings /></Dashboard>} />
 
           </Routes>
         {/* </Router> */}

@@ -15,7 +15,7 @@ function Customer() {
         Users Listing
       </Typography>
 
-      <CustomButton variant="contained" color="primary" sx={{ mb: 2, mt: 2, float: 'right', display: 'block', clear: 'both', }} onClick={() => { navigate('/productManagment/addProduct') }}>
+      <CustomButton variant="contained" color="primary" sx={{ mb: 2, mt: 2, float: 'right', display: 'block', clear: 'both', }} onClick={() => { navigate('/clients/add') }}>
         Add Users
       </CustomButton>
 
