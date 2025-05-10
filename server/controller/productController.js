@@ -2,18 +2,6 @@ import asyncHandler from "express-async-handler";
 import Product from "../models/Product.js";
 import sanitizedConfig from "../config.js";
 import { uploadFileToS3 } from "../utils/s3Utils.js";
-// import { validationResult } from "express-validator"
-// Function for checking email pattern
-// const isValidEmail = (email) => {
-//   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//   return emailRegex.test(email);
-// };
-
-// Function for hashing passwords
-// const hashPassword = async (password) => {
-//   const salt = await bcrypt.genSalt(10);
-//   return await bcrypt.hash(password, salt);
-// };
 
 
 // @desc    Add Product (admin)
@@ -134,10 +122,10 @@ export const getProductsController = asyncHandler(async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Fetch products with pagination (skip and limit)
-    const products = await Product.find()
-      .skip(skip)
-      .limit(limit);
-
+    const products = await Product.find({ isActive: true })
+    .skip(skip)
+    .limit(limit);
+  
     // Get total count of products to calculate total pages
     const totalProducts = await Product.countDocuments();
 
@@ -180,5 +168,49 @@ export const getProductByIdController = asyncHandler(async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server Error" });
+  }
+});
+
+// @route   PUT /api/admin/product/updateProduct/:id
+// @access  lead
+export const updateProductController = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const updateData = req.body; // handle FormData parsing with multer
+
+  const product = await Product.findByIdAndUpdate(id, updateData, { new: true });
+
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+
+  res.status(200).json({ message: "Product updated successfully", product });
+});
+
+
+// @desc    Soft delete product by setting isActive to false
+// @route   DELETE /api/admin/product/deleteProduct/:id
+// @access  lead
+export const deleteProductController = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Find product by ID
+    const product = await Product.findById(id);
+
+    // If product not found
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // Set isActive to false
+    product.isActive = false;
+    await product.save();
+
+    return res.status(200).json({
+      message: "Product has been deactivated successfully",
+    });
+  } catch (error) {
+    console.error("Error in deleteProductController:", error);
+    return res.status(500).json({ message: "Server Error" });
   }
 });

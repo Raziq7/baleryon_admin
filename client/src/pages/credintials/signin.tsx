@@ -1,21 +1,22 @@
-import React, { useEffect } from "react";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import Checkbox from "@mui/material/Checkbox";
-import FormControlLabel from "@mui/material/FormControlLabel";
-import FormLabel from "@mui/material/FormLabel";
-import FormControl from "@mui/material/FormControl";
-import Link from "@mui/material/Link";
-import TextField from "@mui/material/TextField";
-import Typography from "@mui/material/Typography";
-import Stack from "@mui/material/Stack";
-import MuiCard from "@mui/material/Card";
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  Button,
+  Checkbox,
+  FormControl,
+  FormControlLabel,
+  FormLabel,
+  Link,
+  TextField,
+  Typography,
+  Alert,
+  Stack,
+  Card as MuiCard,
+} from "@mui/material";
 import { styled } from "@mui/material/styles";
+import { useNavigate } from "react-router";
 import ForgotPassword from "./components/ForgotPassword";
 import { authLogin } from "../../api/auth";
-import { Alert } from "@mui/material";
-import { useNavigate } from "react-router";
-// import ColorModeSelect from '../../theme/ColorModeSelect';
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -82,14 +83,15 @@ interface AuthLoginResponse {
 export default function SignIn() {
   const navigate = useNavigate();
 
-  const [emailError, setEmailError] = React.useState(false);
-  const [emailErrorMessage, setEmailErrorMessage] = React.useState("");
-  const [passwordError, setPasswordError] = React.useState(false);
-  const [passwordErrorMessage, setPasswordErrorMessage] = React.useState("");
-  const [loginError, setLoginError] = React.useState("");
-  const [open, setOpen] = React.useState(false);
+  const [emailError, setEmailError] = useState(false);
+  const [emailErrorMessage, setEmailErrorMessage] = useState("");
+  const [passwordError, setPasswordError] = useState(false);
+  const [passwordErrorMessage, setPasswordErrorMessage] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const isAuthenticated = localStorage.getItem("isAdminExit") ? true : false;
+  const isAuthenticated = localStorage.getItem("isAdminExit");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -97,44 +99,8 @@ export default function SignIn() {
     }
   }, [isAuthenticated, navigate]);
 
-  const handleClickOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-  };
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (emailError || passwordError) {
-      return;
-    }
-
-    const data = new FormData(event.currentTarget);
-    const res = (await authLogin(
-      data.get("email") as string,
-      data.get("password") as string
-    )) as AuthLoginResponse;
-
-    if (res.status === 400) {
-      setEmailError(true);
-      // setEmailErrorMessage(res.response?.data.message || 'An error occurred');
-      setLoginError(res.response?.data.message || "An error occurred");
-      // setPasswordError(true);
-      // setPasswordErrorMessage('Password must be at least 6 characters long.');
-    }
-
-    if (res.status === 200) {
-      setEmailError(false);
-      setEmailErrorMessage("");
-      setPasswordError(false);
-      setPasswordErrorMessage("");
-      setLoginError("");
-      localStorage.setItem("token", res.data.token || "");
-      localStorage.setItem("isAdminExit", JSON.stringify(res.data.admin));
-    }
-  };
+  const handleClickOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   const validateInputs = () => {
     const email = document.getElementById("email") as HTMLInputElement;
@@ -163,11 +129,40 @@ export default function SignIn() {
     return isValid;
   };
 
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!validateInputs()) return;
+
+    const data = new FormData(event.currentTarget);
+    const email = data.get("email") as string;
+    const password = data.get("password") as string;
+
+    setLoading(true);
+    try {
+      const res = (await authLogin(email, password)) as AuthLoginResponse;
+
+      if (res.status === 200 && res.data?.token) {
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("isAdminExit", JSON.stringify(res.data.admin));
+        setLoginError("");
+        navigate("/");
+      } else {
+        setLoginError(res.response?.data.message || "Invalid login credentials.");
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setLoginError(
+        error?.response?.data?.message || "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <SignInContainer direction="column" justifyContent="space-between">
-      {/* <ColorModeSelect sx={{ position: 'fixed', top: '1rem', right: '1rem' }} /> */}
+    <SignInContainer direction="column" justifyContent="center">
       <Card variant="outlined">
-        {/* <SitemarkIcon /> */}
         <Typography
           component="h1"
           variant="h4"
@@ -180,13 +175,7 @@ export default function SignIn() {
           Sign In
         </Typography>
 
-        {/* <Typography
-            // component="span"
-            sx={{ textAlign: "center", width: '100%', fontSize: 'clamp(1.5rem, 5vw, 1.0rem)',color:"red" }}
-          >
-           {loginError}
-          </Typography> */}
-        {loginError && <Alert severity="error">{loginError}.</Alert>}
+        {loginError && <Alert severity="error">{loginError}</Alert>}
 
         <Box
           component="form"
@@ -205,47 +194,51 @@ export default function SignIn() {
               error={emailError}
               helperText={emailErrorMessage}
               id="email"
-              type="email"
               name="email"
+              type="email"
               placeholder="your@email.com"
-              autoComplete="email"
-              autoFocus
               required
               fullWidth
               variant="outlined"
+              autoComplete="email"
+              autoFocus
               color={emailError ? "error" : "primary"}
             />
           </FormControl>
+
           <FormControl>
             <FormLabel htmlFor="password">Password</FormLabel>
             <TextField
               error={passwordError}
               helperText={passwordErrorMessage}
-              name="password"
-              placeholder="••••••"
-              type="password"
               id="password"
-              autoComplete="current-password"
-              autoFocus
+              name="password"
+              type="password"
+              placeholder="••••••"
               required
               fullWidth
               variant="outlined"
+              autoComplete="current-password"
               color={passwordError ? "error" : "primary"}
             />
           </FormControl>
+
           <FormControlLabel
             control={<Checkbox value="remember" color="primary" />}
             label="Remember me"
           />
+
           <ForgotPassword open={open} handleClose={handleClose} />
+
           <Button
             type="submit"
             fullWidth
             variant="contained"
-            onClick={validateInputs}
+            disabled={loading}
           >
-            Sign in
+            {loading ? "Signing in..." : "Sign in"}
           </Button>
+
           <Link
             component="button"
             type="button"
@@ -256,35 +249,6 @@ export default function SignIn() {
             Forgot your password?
           </Link>
         </Box>
-        {/* <Divider>or</Divider> */}
-        {/* <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert('Sign in with Google')}
-              startIcon={<GoogleIcon />}
-            >
-              Sign in with Google
-            </Button>
-            <Button
-              fullWidth
-              variant="outlined"
-              onClick={() => alert('Sign in with Facebook')}
-              startIcon={<FacebookIcon />}
-            >
-              Sign in with Facebook
-            </Button>
-            <Typography sx={{ textAlign: 'center' }}>
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/material-ui/getting-started/templates/sign-in/"
-                variant="body2"
-                sx={{ alignSelf: 'center' }}
-              >
-                Sign up
-              </Link>
-            </Typography>
-          </Box> */}
       </Card>
     </SignInContainer>
   );

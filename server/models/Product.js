@@ -18,7 +18,8 @@ const productSchema = new mongoose.Schema(
     color: { type: String },
     productDetails: { type: String },
     isReturn: { type: Boolean },
-    image: { type: Object, required: true }
+    image: { type: Object, required: true },
+    isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
 );

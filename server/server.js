@@ -10,6 +10,7 @@ import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
 import productRouter from "./routes/productRouter.js";
 import userManagmentRouter from "./routes/userManagmentRouter.js"
 import authRouter from "./routes/authRouter.js";
+import settingRouter from "./routes/settingRouter.js";
 
 import sanitizedConfig from "./config.js";
 
@@ -39,6 +40,10 @@ app.use("/api/admin/product/", productRouter);
 
 // user managment router
 app.use("/api/admin/userManagment/", userManagmentRouter);
+
+// setting
+app.use("/api/admin/setting/", settingRouter);
+
 
 app.get("/", (req, res) => {
   res.send("API is running!");

@@ -2,9 +2,9 @@ import * as React from "react";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import CursoleUtil from "./screens/CursoleUtil";
+import BannerUtils from "./screens/BannerUtils.tsx";
 import StatusUtils from "./screens/StatusUtils";
-import BannerUtils from "./screens/BannerUtils";
+import CategoryUtils from "./screens/CategoryUtils";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -49,19 +49,19 @@ function Settings() {
           onChange={handleChange}
           aria-label="basic tabs example"
         >
-          <Tab label="Curosels" {...a11yProps(0)} />
+          <Tab label="Banners" {...a11yProps(0)} />
           <Tab label="Status" {...a11yProps(1)} />
-          <Tab label="Banner's" {...a11yProps(2)} />
+          <Tab label="Category" {...a11yProps(2)} />
         </Tabs>
       </Box>
       <CustomTabPanel value={value} index={0}>
-        <CursoleUtil />
+        <BannerUtils />
       </CustomTabPanel>
       <CustomTabPanel value={value} index={1}>
         <StatusUtils />
       </CustomTabPanel>
       <CustomTabPanel value={value} index={2}>
-        <BannerUtils />
+        <CategoryUtils />
       </CustomTabPanel>
     </Box>
   );

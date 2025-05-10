@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer"; // For handling multipart form data (file uploads)
 import path from 'path';
 
-import { addProductController, getProductByIdController, getProductsController } from "../controller/productController.js";
+import { addProductController, deleteProductController, getProductByIdController, getProductsController, updateProductController } from "../controller/productController.js";
 import {protect} from "../middlewares/authMiddleware.js";
 
 var router = express.Router();
@@ -28,5 +28,11 @@ router.route("/addProduct").post(upload.array('files'), addProductController);
 router.route("/getProducts").get(protect,getProductsController);
 
 router.route("/productDetails").get(getProductByIdController)
+
+// UPDATE PRODUCT
+router.route("/updateProduct/:id").put(upload.array('files'), updateProductController);
+
+// DELETE PRODUCT
+router.route("/deleteProduct").delete(protect,deleteProductController);
 
 export default router;

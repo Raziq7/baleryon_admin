@@ -51,3 +51,13 @@ export const uploadFileToS3 = async (file, bucketName) => {
     throw new Error(`Error uploading file to S3: ${error.message}`);
   }
 };
+export const deleteFileFromS3 = async (fileUrl, bucket) => {
+  const key = decodeURIComponent(new URL(fileUrl).pathname).replace(`/${bucket}/`, "");
+
+  const params = {
+    Bucket: bucket,
+    Key: key,
+  };
+
+  await s3.deleteObject(params).promise();
+};
