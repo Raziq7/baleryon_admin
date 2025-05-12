@@ -53,12 +53,13 @@ function FileInput({ onFileChange,cropPass }) {
   const [openCropper, setOpenCropper] = useState(false);
 
   const dimensions = {
-    width: 163,
-    height: 129,
+    width: 160,       // can scale to whatever suits your admin preview
+    height: 200,      // 4:5 aspect ratio for Instagram portrait post
     marginTop: 20,
     left: 11,
     top: 36,
   };
+  
 
   const changeHandler = (event) => {
     const files = Array.from(event.target.files);
@@ -133,15 +134,15 @@ function FileInput({ onFileChange,cropPass }) {
       <Dialog open={openCropper} onClose={() => setOpenCropper(false)} fullWidth>
         <DialogContent style={{ position: "relative", height: 400 }}>
           {cropImage && (
-            <Cropper
-              image={cropImage}
-              crop={crop}
-              zoom={zoom}
-              aspect={4 / 3} // Aspect ratio for the crop area
-              onCropChange={setCrop}
-              onZoomChange={setZoom}
-              onCropComplete={handleCropComplete}
-            />
+           <Cropper
+           image={cropImage}
+           crop={crop}
+           zoom={zoom}
+           aspect={4 / 5.2} // changed from 4 / 3
+           onCropChange={setCrop}
+           onZoomChange={setZoom}
+           onCropComplete={handleCropComplete}
+         />         
           )}
         </DialogContent>
         <DialogActions>

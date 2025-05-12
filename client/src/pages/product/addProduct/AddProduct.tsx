@@ -178,7 +178,8 @@ const AddProduct = () => {
     // Prepare form data for submission
     const formDataToSend = new FormData();
     formDataToSend.append("productName", formData.productName);
-    formDataToSend.append("description", quill.root.innerHTML); // Get rich text content
+    formDataToSend.append("description", formData.description); // Get rich text content
+    formDataToSend.append("productDetails", quill.root.innerHTML); // Get rich text content
     formDataToSend.append("price", formData.price);
     formDataToSend.append("discount", formData.discount || 0);
     formDataToSend.append("purchasePrice", formData.purchasePrice);

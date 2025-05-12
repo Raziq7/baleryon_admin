@@ -48,7 +48,7 @@ const EditProduct = () => {
         });
 
         if (quill) {
-          quill.root.innerHTML = formData.description;
+          quill.root.innerHTML = product.productDetails;
         }
 
         setIsLoading(false);
