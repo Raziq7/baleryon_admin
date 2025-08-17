@@ -16,8 +16,7 @@ export default function DataTable() {
   React.useEffect(() => {
     const token = localStorage.getItem('token');
 
-    api
-      .get('/admin/product/getProducts', {
+    api.get('/admin/product/getProducts', {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
@@ -38,7 +37,7 @@ export default function DataTable() {
       });
   }, []);
 
-  const handleDelete = async (productId) => {
+  const handleDelete = async (productId:number) => {
     const token = localStorage.getItem('token');
   
     if (!window.confirm('Are you sure you want to delete this product?')) return;

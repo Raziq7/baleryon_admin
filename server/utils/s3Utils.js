@@ -2,16 +2,23 @@ import AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs"; // File system module to read the file
 import path from "path"; // Path module for working with file paths
+import sanitizedConfig from "../config.js";
 
 // Initialize S3 client
 const s3 = new AWS.S3({
-  accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  region: process.env.AWS_REGION,
+  accessKeyId: sanitizedConfig.AWS_ACCESS_KEY_ID,
+  secretAccessKey: sanitizedConfig.AWS_SECRET_ACCESS_KEY,
+  region: sanitizedConfig.AWS_REGION,
 });
 
 // Define allowed file types
-const allowedTypes = ["image/jpeg", "image/jpg", "image/png", "image/gif", "video/mp4"];
+const allowedTypes = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "video/mp4",
+]; 
 
 /**
  * Upload a single file to S3
@@ -24,7 +31,9 @@ export const uploadFileToS3 = async (file, bucketName) => {
 
   // Validate file type
   if (!allowedTypes.includes(file.mimetype)) {
-    throw new Error("Invalid file type. Allowed types are JPG, PNG, GIF, and MP4.");
+    throw new Error(
+      "Invalid file type. Allowed types are JPG, PNG, GIF, and MP4."
+    );
   }
 
   // Create a unique filename for the S3 bucket
@@ -47,12 +56,14 @@ export const uploadFileToS3 = async (file, bucketName) => {
     console.log(error);
     console.log(error.message);
 
-    
     throw new Error(`Error uploading file to S3: ${error.message}`);
   }
 };
 export const deleteFileFromS3 = async (fileUrl, bucket) => {
-  const key = decodeURIComponent(new URL(fileUrl).pathname).replace(`/${bucket}/`, "");
+  const key = decodeURIComponent(new URL(fileUrl).pathname).replace(
+    `/${bucket}/`,
+    ""
+  );
 
   const params = {
     Bucket: bucket,

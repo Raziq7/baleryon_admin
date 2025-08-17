@@ -67,7 +67,7 @@ export const addProductController = asyncHandler(async (req, res) => {
     if (req.files && req.files.length > 0) {
       try {
         for (const file of req.files) {
-          const imageUrl = await uploadFileToS3(file, process.env.AWS_BUCKET_NAME);
+          const imageUrl = await uploadFileToS3(file, sanitizedConfig.AWS_BUCKET_NAME);
           imageUrls.push(imageUrl);
         }
       } catch (error) {

@@ -1,6 +1,6 @@
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
-import React, { useState } from "react";
+import  { useState } from "react";
 import {
   Grid,
   Box,
@@ -17,7 +17,6 @@ import { colornames } from "color-name-list";
 import { Tooltip } from "@mui/material";
 import FileInput from "../../../components/FileInput";
 import api from "../../../utils/baseUrl";
-import axios from "axios";
 
 const AddProduct = () => {
   const [formData, setFormData] = useState({
@@ -207,10 +206,7 @@ const AddProduct = () => {
 
     try {
       // Make API request to add the product (you'll replace the URL here with your API endpoint)
-      await axios.post(
-        "http://localhost:8000/api/admin/product/addProduct",
-        formDataToSend
-      );
+      await api.post("/admin/product/addProduct", formDataToSend);
 
       setIsLoading(false);
       alert("Product added successfully!");
