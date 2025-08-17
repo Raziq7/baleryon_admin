@@ -1,12 +1,38 @@
-import React, { useState } from "react";
-import { Fab, Grid, Typography, Button, Dialog, DialogActions, DialogContent, Slider } from "@mui/material";
+import { ChangeEvent, useMemo, useState } from "react";
+import {
+  Fab,
+  Grid,
+  Typography,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  Slider,
+} from "@mui/material";
+import PropTypes from "prop-types";
+import { Area } from "react-easy-crop";
 import { styled } from "@mui/material/styles";
 import Cropper from "react-easy-crop";
 import getCroppedImg from "../utils/cropImage"; // This utility handles the cropping logic
-import PropTypes from "prop-types";
 
 // Styled components
-const Avatar = styled("div")(({ width, height, marginTop }) => ({
+interface AvatarProps {
+  width?: string | number;
+  height?: string | number;
+  marginTop?: string | number;
+}
+// Define the extra props you're passing in
+interface StyledFabProps {
+  left?: string | number;
+  top?: string | number;
+}
+
+interface FileInputProps {
+  onFileChange: (files: File[]) => void;
+  cropPass: (files: File[]) => void;
+}
+
+const Avatar = styled("div")<AvatarProps>(({ width, height, marginTop }) => ({
   backgroundColor: "white",
   border: "1px dashed #000",
   boxSizing: "border-box",
@@ -22,7 +48,7 @@ const Avatar = styled("div")(({ width, height, marginTop }) => ({
   textTransform: "none",
 }));
 
-const StyledFab = styled(Fab)(({ left, top }) => ({
+const StyledFab = styled(Fab)<StyledFabProps>(({ left, top }) => ({
   border: "none",
   backgroundColor: "white",
   color: "#4A4A4A",
@@ -43,43 +69,48 @@ const HiddenInput = styled("input")(() => ({
   display: "none",
 }));
 
-function FileInput({ onFileChange,cropPass }) {
-  const [selectedFiles, setSelectedFiles] = useState();
-  const [cropImage, setCropImage] = useState(null);
-  const [croppedImages, setCroppedImages] = useState([]);
+function FileInput({ onFileChange, cropPass }: FileInputProps) {
+  const [selectedFiles, setSelectedFiles] = useState<File[] | undefined>();
+  const [cropImage, setCropImage] = useState<string | null>(null);
+  const [croppedImages, setCroppedImages] = useState<string[]>([]);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [openCropper, setOpenCropper] = useState(false);
 
-  const dimensions = {
-    width: 160,       // can scale to whatever suits your admin preview
-    height: 200,      // 4:5 aspect ratio for Instagram portrait post
-    marginTop: 20,
-    left: 11,
-    top: 36,
-  };
-  
+  const dimensions = useMemo(
+    () => ({
+      width: 160,
+      height: 200,
+      marginTop: 20,
+      left: 11,
+      top: 36,
+    }),
+    []
+  );
 
-  const changeHandler = (event) => {
-    const files = Array.from(event.target.files);
+  const changeHandler = (event: ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files ? Array.from(event.target.files) : [];
     if (files.length > 0) {
-      setCropImage(URL.createObjectURL(files[0])); // Use the first file for cropping
+      setCropImage(URL.createObjectURL(files[0]));
       setOpenCropper(true);
     }
     setSelectedFiles(files);
-    onFileChange(files); // Notify the parent component about the file change
+    onFileChange(files);
   };
 
-  const handleCropComplete = (_, croppedAreaPixels) => {
+  const handleCropComplete = (_: unknown, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
   };
 
   const handleCrop = async () => {
     try {
+      if (!cropImage || !croppedAreaPixels) return; // or throw an error
+
       const croppedImg = await getCroppedImg(cropImage, croppedAreaPixels);
+
       setCroppedImages((prev) => [...prev, croppedImg]);
-      cropPass(selectedFiles)
+      cropPass(selectedFiles ?? []);
       setCropImage(null);
       setOpenCropper(false);
     } catch (e) {
@@ -107,7 +138,6 @@ function FileInput({ onFileChange,cropPass }) {
           />
           <StyledFab
             aria-label={textDesc}
-            component="div"
             variant="extended"
             left={dimensions.left}
             top={dimensions.top}
@@ -131,18 +161,22 @@ function FileInput({ onFileChange,cropPass }) {
       </Grid>
 
       {/* Cropper Dialog */}
-      <Dialog open={openCropper} onClose={() => setOpenCropper(false)} fullWidth>
+      <Dialog
+        open={openCropper}
+        onClose={() => setOpenCropper(false)}
+        fullWidth
+      >
         <DialogContent style={{ position: "relative", height: 400 }}>
           {cropImage && (
-           <Cropper
-           image={cropImage}
-           crop={crop}
-           zoom={zoom}
-           aspect={4 / 5.2} // changed from 4 / 3
-           onCropChange={setCrop}
-           onZoomChange={setZoom}
-           onCropComplete={handleCropComplete}
-         />         
+            <Cropper
+              image={cropImage}
+              crop={crop}
+              zoom={zoom}
+              aspect={4 / 5.2} // changed from 4 / 3
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={handleCropComplete}
+            />
           )}
         </DialogContent>
         <DialogActions>
@@ -152,9 +186,10 @@ function FileInput({ onFileChange,cropPass }) {
             min={1}
             max={3}
             step={0.1}
-            onChange={(e, zoom) => setZoom(zoom)}
+            onChange={(_, value) => setZoom(value as number)}
             style={{ width: "150px", marginRight: "10px" }}
           />
+
           <Button onClick={() => setOpenCropper(false)}>Cancel</Button>
           <Button onClick={handleCrop} color="primary" variant="contained">
             Crop

@@ -29,7 +29,7 @@ function BannerUtils() {
 
     setUploading(true);
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth_token");
       const response = await api.post("/admin/setting/bannerCreate", formData, {
         headers: { Authorization: `Bearer ${token}` },
       });

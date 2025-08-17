@@ -143,7 +143,7 @@ export default function SignIn() {
       const res = (await authLogin(email, password)) as AuthLoginResponse;
 
       if (res.status === 200 && res.data?.token) {
-        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("auth_token", res.data.token);
         localStorage.setItem("isAdminExit", JSON.stringify(res.data.admin));
         setLoginError("");
         navigate("/");
