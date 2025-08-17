@@ -18,7 +18,7 @@
     "@mui/x-date-pickers": "^7.28.0",
     "@reduxjs/toolkit": "^2.6.1",
     "axios": "^1.8.4",
-    "color-name-list": "^11.5.0",
+    "color-name-list": "^11.24.0",
     "dayjs": "^1.11.13",
     "quill": "^2.0.3",
     "react": "^19.0.0",
@@ -27,7 +27,8 @@
     "react-quilljs": "^2.0.5",
     "react-redux": "^9.2.0",
     "react-router": "^7.4.0",
-    "react-router-dom": "^7.4.0"
+    "react-router-dom": "^7.4.0",
+    "zustand": "^5.0.7"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

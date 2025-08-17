@@ -14,7 +14,7 @@ export default function SettingsTable() {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
 
     api
       .get("/admin/setting/getAllUsers", {
@@ -39,7 +39,7 @@ export default function SettingsTable() {
   };
 
   const handleDelete = async (id: string) => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
 
     try {
       await api.delete(`/admin/setting/deleteUser?id=${id}`, {

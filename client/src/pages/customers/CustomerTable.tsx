@@ -13,7 +13,7 @@ export default function DataTable() {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
 
     api
       .get("/admin/userManagment/users/list", {

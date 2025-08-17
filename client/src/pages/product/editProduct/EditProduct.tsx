@@ -26,7 +26,7 @@ const EditProduct = () => {
   const { quill, quillRef } = useQuill({ theme: "snow" });
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
 
     api
       .get(`/admin/product/productDetails?id=${id}`, {
@@ -82,7 +82,7 @@ const EditProduct = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("auth_token");
     const updatedData = new FormData();
 
     Object.entries(formData).forEach(([key, value]) => {

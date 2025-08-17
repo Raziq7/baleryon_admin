@@ -1,28 +1,47 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import api from '../../utils/baseUrl';
-import { Box, Typography, Divider, Chip, Grid, Paper } from '@mui/material';
+import { useEffect } from "react";
+import { useParams } from "react-router-dom";
+import {
+  Box,
+  Typography,
+  Divider,
+  Chip,
+  Grid,
+  Paper,
+  CircularProgress,
+} from "@mui/material";
+import { useProductStore } from "../../store/useProductStore";
 
 const ProductDetail = () => {
-  const { id } = useParams();
-  const [product, setProduct] = useState(null);
+  const { id } = useParams<{ id: string }>();
+
+  const {
+    fetchProductById,
+    selectedProduct: product,
+    loading,
+    error,
+  } = useProductStore();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    if (id) {
+      fetchProductById(id);
+    }
+  }, [id, fetchProductById]);
 
-    api
-      .get(`/admin/product/productDetails?id=${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        setProduct(res.data.product);
-      })
-      .catch((err) => {
-        console.error('Error fetching product details:', err);
-      });
-  }, [id]);
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
-  if (!product) return <Typography>Loading...</Typography>;
+  if (error || !product) {
+    return (
+      <Typography color="error" sx={{ mt: 4 }}>
+        {error || "Product not found."}
+      </Typography>
+    );
+  }
 
   return (
     <Paper sx={{ padding: 3 }}>
@@ -34,7 +53,10 @@ const ProductDetail = () => {
         Category: <Chip label={product.category} size="small" />
       </Typography>
 
-      <Typography variant="body1" dangerouslySetInnerHTML={{ __html: product.description }} />
+      <Typography
+        variant="body1"
+        dangerouslySetInnerHTML={{ __html: product.description }}
+      />
 
       <Divider sx={{ my: 2 }} />
 
@@ -49,31 +71,58 @@ const ProductDetail = () => {
           <Typography>Purchase Price: ₹{product.purchasePrice}</Typography>
         </Grid>
         <Grid item xs={6}>
-          <Typography>Returnable: {product.isReturn ? 'Yes' : 'No'}</Typography>
+          <Typography>Returnable: {product.isReturn ? "Yes" : "No"}</Typography>
         </Grid>
-        <Grid item xs={12}>
-          <Typography>Note: {product.note}</Typography>
-        </Grid>
-        <Grid item xs={12}>
-          <Typography>Color: {product.color}</Typography>
-        </Grid>
+        {product.note && (
+          <Grid item xs={12}>
+            <Typography>Note: {product.note}</Typography>
+          </Grid>
+        )}
+        {product.color && (
+          <Grid item xs={12}>
+            <Typography>Color: {product.color}</Typography>
+          </Grid>
+        )}
       </Grid>
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography variant="h6">Sizes:</Typography>
-      {product.sizes.map((size, index) => (
-        <Chip key={index} label={`${size.size} - Qty: ${size.quantity}`} sx={{ m: 0.5 }} />
-      ))}
+      <Typography variant="h6" gutterBottom>
+        Sizes:
+      </Typography>
+      {product.sizes.length > 0 ? (
+        product.sizes.map((size, index) => (
+          <Chip
+            key={index}
+            label={`${size.size} - Qty: ${size.quantity}`}
+            sx={{ m: 0.5 }}
+          />
+        ))
+      ) : (
+        <Typography>No sizes available</Typography>
+      )}
 
       <Divider sx={{ my: 2 }} />
 
-      <Typography variant="h6">Images:</Typography>
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
-        {product.image.map((img, i) => (
-          <img key={i} src={img} alt="Product" width={120} height={120} style={{ borderRadius: 8 }} />
-        ))}
-      </Box>
+      <Typography variant="h6" gutterBottom>
+        Images:
+      </Typography>
+      {product.image && product.image.length > 0 ? (
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 1 }}>
+          {product.image.map((img, i) => (
+            <img
+              key={i}
+              src={img}
+              alt={`Product ${i + 1}`}
+              width={120}
+              height={120}
+              style={{ borderRadius: 8, objectFit: "cover" }}
+            />
+          ))}
+        </Box>
+      ) : (
+        <Typography>No images available</Typography>
+      )}
     </Paper>
   );
 };

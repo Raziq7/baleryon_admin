@@ -9,20 +9,19 @@ import { uploadFileToS3 } from "../utils/s3Utils.js";
 // @access  lead
 export const addProductController = asyncHandler(async (req, res) => {
   try {
-    // Sanitize and parse req.body
-    const body = JSON.parse(JSON.stringify(req.body)); // strip [Object: null prototype]
+    // Strip [Object: null prototype]
+    const body = JSON.parse(JSON.stringify(req.body));
 
-    // Coerce fields
+    // === FIELD EXTRACTION & COERCION ===
     const productName = body.productName?.trim();
     const description = body.description?.trim();
     const price = Number(body.price);
     const discount = Number(body.discount || 0);
     const purchasePrice = Number(body.purchasePrice || 0);
-    const category = body.category?.trim();
-    const note = body.note || "";
+    const category = body.category; // schema expects Object, not string
+    const note = body.note?.trim() || "";
     const productDetails = body.productDetails || "";
     const isReturn = body.isReturn === "true" || body.isReturn === true;
-    const file = body.file || "";
     const color = body.color || "";
 
     // === VALIDATION ===
@@ -36,7 +35,7 @@ export const addProductController = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Price must be a valid number greater than 0." });
     }
 
-    // === SIZE PARSING ===
+    // === SIZES ===
     let parsedSizes = [];
     try {
       const rawSizes = body.sizes;
@@ -49,7 +48,7 @@ export const addProductController = asyncHandler(async (req, res) => {
           size: s.size?.trim(),
           quantity: Number(s.quantity),
         }))
-        .filter((s) => s.size && !isNaN(s.quantity));
+        .filter((s) => s.size && !isNaN(s.quantity) && s.quantity > 0);
 
       if (parsedSizes.length === 0) {
         return res.status(400).json({
@@ -84,14 +83,13 @@ export const addProductController = asyncHandler(async (req, res) => {
       price,
       discount,
       purchasePrice,
-      category,
+      category,          // ✅ schema expects Object
       note,
       sizes: parsedSizes,
-      file,
       color,
       productDetails,
       isReturn,
-      image: imageUrls,
+      image: imageUrls,  // ✅ array of image URLs
     });
 
     await newProduct.save();
@@ -105,9 +103,6 @@ export const addProductController = asyncHandler(async (req, res) => {
     return res.status(500).json({ message: "Internal Server Error" });
   }
 });
-
-
-
 
 // @desc    Get paginated list of products
 // @route   GET /api/products
