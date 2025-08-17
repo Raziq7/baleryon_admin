@@ -1,53 +1,38 @@
+// src/components/customer/DataTable.tsx
 import * as React from "react";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
 import { useNavigate } from "react-router-dom";
-import api from "../../utils/baseUrl";
+import { useCustomerStore } from "../../store/useCustomerStore";
 
 export default function DataTable() {
-  const [rows, setRows] = React.useState([]);
+  const navigate = useNavigate();
+
+  const {
+    customers,
+    fetchCustomers,
+    loading,
+    error,
+  } = useCustomerStore();
+
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0,
     pageSize: 5,
   });
-  const navigate = useNavigate();
 
+  // fetch customers on mount
   React.useEffect(() => {
-    const token = localStorage.getItem("auth_token");
+    fetchCustomers();
+  }, [fetchCustomers]);
 
-    api
-      .get("/admin/userManagment/users/list", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((response) => {
-        setRows(
-          response.data?.users.map((item) => ({
-            id: item._id,
-            firstName: item.firstName,
-            lastName: item.lastName,
-            email: item.email,
-            phone: item.phone,
-            password: item.password,
-            role: item.role,
-            gender: item.gender,
-            image: item.image,
-            isActive: item.isActive,
-            isLoginEnabled: item.isLoginEnabled,
-          }))
-        );
-      })
-      .catch((error) => {
-        console.error("Error fetching products:", error);
-      });
-  }, []);
-
-  const handleRowClick = (params) => {
-    navigate(`productDetail/${params.row.id}`); // You can adjust this route
+  const handleRowClick = (params:unknown) => {
+    navigate(`customerDetail/${params.row.id}`); // changed route to customerDetail
   };
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 120 },
-    { field: "firstName", headerName: "Name", width: 160 },
+    { field: "_id", headerName: "ID", width: 120 },
+    { field: "firstName", headerName: "First Name", width: 160 },
+    { field: "lastName", headerName: "Last Name", width: 160 },
     {
       field: "email",
       headerName: "Email",
@@ -64,24 +49,17 @@ export default function DataTable() {
         />
       ),
     },
-    {
-      field: "phone",
-      headerName: "Phone",
-      type: "number",
-      width: 160,
-    },
-    {
-      field: "gender",
-      headerName: "Gender",
-      width: 160,
-    },
-    { field: "isActive", headerName: "Active", width: 160 },
+    { field: "phone", headerName: "Phone", width: 160 },
+    { field: "gender", headerName: "Gender", width: 120 },
+    { field: "role", headerName: "Role", width: 120 },
+    { field: "isActive", headerName: "Active", width: 100 },
+    { field: "isLoginEnabled", headerName: "Login Enabled", width: 150 },
   ];
 
   return (
     <Paper sx={{ height: 400, width: "100%" }}>
       <DataGrid
-        rows={rows}
+        rows={customers.map((c) => ({ ...c, id: c._id }))} // map id for DataGrid
         columns={columns}
         pageSizeOptions={[5, 10]}
         onRowClick={handleRowClick}
@@ -89,7 +67,9 @@ export default function DataTable() {
         initialState={{ pagination: { paginationModel } }}
         onPaginationModelChange={(model) => setPaginationModel(model)}
         checkboxSelection
+        loading={loading}
       />
+      {error && <p style={{ color: "red", padding: "8px" }}>{error}</p>}
     </Paper>
   );
 }

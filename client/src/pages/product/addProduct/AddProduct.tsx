@@ -16,7 +16,6 @@ import {
 } from "@mui/material";
 import { colornames } from "color-name-list";
 import FileInput from "../../../components/FileInput";
-import axios from "axios";
 import { useProductStore } from "../../../store/useProductStore";
 
 interface Color {
@@ -41,6 +40,7 @@ const AddProduct: React.FC = () => {
     addColor,
     removeColor,
     resetForm,
+    addProduct
   } = useProductStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -108,10 +108,11 @@ const AddProduct: React.FC = () => {
     formDataToSend.append("productDetails", quill?.root.innerHTML || "");
 
     try {
-      await axios.post(
-        "http://localhost:3000/api/admin/product/addProduct",
-        formDataToSend
-      );
+      // await axios.post(
+      //   "http://localhost:3000/api/admin/product/addProduct",
+      //   formDataToSend
+      // );
+      await addProduct(formDataToSend)
       alert("Product added successfully!");
       resetForm();
     } catch (err) {
