@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
 import {
@@ -16,24 +16,54 @@ import {
 import api from "../../../utils/baseUrl";
 import FileInput from "../../../components/FileInput";
 
-const EditProduct = () => {
-  const { id } = useParams();
-  const [formData, setFormData] = useState(null);
-  const [croppedImages, setCroppedImages] = useState([]);
+/* ---------- Types ---------- */
+interface Size {
+  size: string;
+  quantity: string;
+}
+
+interface ProductForm {
+  productName: string;
+  description: string;
+  price: number;
+  discount: number;
+  purchasePrice: number;
+  category: string;
+  note: string;
+  sizes: Size[];
+  isReturn: boolean;
+}
+
+interface ProductResponse {
+  product: ProductForm & {
+    image: string[];
+    productDetails: string;
+  };
+}
+
+/* ---------- Component ---------- */
+const EditProduct: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState<ProductForm | null>(null);
+  const [croppedImages, setCroppedImages] = useState<(File | string)[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
   const { quill, quillRef } = useQuill({ theme: "snow" });
 
+  /* ---------- Fetch Product ---------- */
   useEffect(() => {
     const token = localStorage.getItem("auth_token");
 
     api
-      .get(`/admin/product/productDetails?id=${id}`, {
+      .get<ProductResponse>(`/admin/product/productDetails?id=${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
         const product = res.data.product;
+
         setFormData({
           productName: product.productName,
           description: product.description,
@@ -42,10 +72,13 @@ const EditProduct = () => {
           purchasePrice: product.purchasePrice,
           category: product.category,
           note: product.note,
-          sizes: product.sizes,
+          sizes: product.sizes || [],
           isReturn: product.isReturn,
-          color: product.color,
         });
+
+        if (product.image && product.image.length > 0) {
+          setCroppedImages(product.image); // URLs
+        }
 
         if (quill) {
           quill.root.innerHTML = product.productDetails;
@@ -60,44 +93,70 @@ const EditProduct = () => {
       });
   }, [id, quill]);
 
-  const handleChange = (e) => {
+  /* ---------- Handlers ---------- */
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData((prev) =>
+      prev ? { ...prev, [name]: value } : (prev as ProductForm)
+    );
   };
 
-  const handleSizeChange = (index, key, value) => {
+  const handleSizeChange = (index: number, key: keyof Size, value: string) => {
+    if (!formData) return;
     const newSizes = [...formData.sizes];
     newSizes[index][key] = value;
     setFormData({ ...formData, sizes: newSizes });
   };
 
   const handleAddSize = () => {
-    setFormData((prevData) => ({
-      ...prevData,
-      sizes: [...prevData.sizes, { size: "", quantity: "" }],
-    }));
+    if (!formData) return;
+    setFormData((prevData) =>
+      prevData
+        ? { ...prevData, sizes: [...prevData.sizes, { size: "", quantity: "" }] }
+        : prevData
+    );
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleRemoveSize = (index: number) => {
+    if (!formData) return;
+    setFormData((prevData) => {
+      if (!prevData) return prevData;
+      const newSizes = [...prevData.sizes];
+      newSizes.splice(index, 1);
+      return { ...prevData, sizes: newSizes };
+    });
+  };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formData) return;
+
+    setIsLoading(true);
     const token = localStorage.getItem("auth_token");
     const updatedData = new FormData();
 
-    Object.entries(formData).forEach(([key, value]) => {
-      if (key !== "sizes") updatedData.append(key, value);
-    });
+    (Object.entries(formData) as [keyof ProductForm, string | number | boolean][])
+      .forEach(([key, value]) => {
+        if (key !== "sizes") {
+          updatedData.append(key, String(value));
+        }
+      });
 
     formData.sizes.forEach((s, index) => {
       updatedData.append(`sizes[${index}][size]`, s.size);
       updatedData.append(`sizes[${index}][quantity]`, s.quantity);
     });
 
-    updatedData.append("productDetails", quill.root.innerHTML);
+    updatedData.append("productDetails", (quill?.root.innerHTML as string) || "");
 
     croppedImages.forEach((file) => {
-      updatedData.append("files", file);
+      if (file instanceof File) {
+        updatedData.append("files", file);
+      } else {
+        updatedData.append("existingImages", file); // handle existing image URLs
+      }
     });
 
     try {
@@ -108,6 +167,7 @@ const EditProduct = () => {
         },
       });
       alert("Product updated successfully!");
+      navigate("/productManagment");
     } catch (err) {
       console.error(err);
       alert("Error updating product.");
@@ -116,21 +176,30 @@ const EditProduct = () => {
     }
   };
 
+  /* ---------- Render ---------- */
   if (isLoading) return <CircularProgress />;
   if (errorMsg) return <Alert severity="error">{errorMsg}</Alert>;
+  if (!formData) return null;
 
   return (
     <Box p={3}>
-      <Typography variant="h5">Edit Product</Typography>
+      <Typography variant="h5" gutterBottom>
+        Edit Product
+      </Typography>
       <form onSubmit={handleSubmit}>
         <Grid container spacing={2}>
+          {/* File Upload */}
           <Grid item xs={12}>
             <FileInput
-              onFileChange={(files) => setCroppedImages([...files])}
-              cropPass={(file) => setCroppedImages([...croppedImages, file[0]])}
+              initialImages={croppedImages.filter((img): img is string => typeof img === "string")}
+              onFileChange={(files: File[]) => setCroppedImages([...files])}
+              cropPass={(file: File[]) =>
+                setCroppedImages((prev) => [...prev, file[0]])
+              }
             />
           </Grid>
 
+          {/* Product Name */}
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -142,6 +211,7 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Short Description */}
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
@@ -154,6 +224,7 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Price & Discount */}
           <Grid item xs={6}>
             <TextField
               fullWidth
@@ -165,7 +236,6 @@ const EditProduct = () => {
               required
             />
           </Grid>
-
           <Grid item xs={6}>
             <TextField
               fullWidth
@@ -177,6 +247,7 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Purchase Price & Category */}
           <Grid item xs={6}>
             <TextField
               fullWidth
@@ -187,7 +258,6 @@ const EditProduct = () => {
               type="number"
             />
           </Grid>
-
           <Grid item xs={6}>
             <TextField
               fullWidth
@@ -198,6 +268,7 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Note */}
           <Grid item xs={6}>
             <TextField
               fullWidth
@@ -208,6 +279,7 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Sizes */}
           <Grid item xs={12}>
             <Typography variant="h6">Sizes and Quantities</Typography>
             {formData.sizes.map((sizeRow, index) => (
@@ -249,6 +321,7 @@ const EditProduct = () => {
             </Button>
           </Grid>
 
+          {/* Detailed Description */}
           <Grid item xs={12}>
             <Typography variant="h6">Detailed Description</Typography>
             <div
@@ -257,6 +330,7 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Returnable */}
           <Grid item xs={6}>
             <FormControlLabel
               control={
@@ -271,8 +345,14 @@ const EditProduct = () => {
             />
           </Grid>
 
+          {/* Submit */}
           <Grid item xs={12}>
-            <Button variant="contained" color="primary" type="submit" fullWidth>
+            <Button
+              variant="contained"
+              color="primary"
+              type="submit"
+              fullWidth
+            >
               Update Product
             </Button>
           </Grid>

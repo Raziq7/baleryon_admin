@@ -27,6 +27,11 @@ export default function DataTable() {
     page: 0,
     pageSize: 5,
   });
+  const [isMouseOver, setIsMouseOver] = React.useState({
+    index: "",
+    value: false,
+  });
+
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -41,21 +46,33 @@ export default function DataTable() {
 
   const handleRowClick = React.useCallback(
     (params: GridRowParams) => {
-      navigate(`productDetail/${params.row._id}`);
+      navigate(`/productManagment/productDetail/${params.row._id}`);
     },
     [navigate]
   );
 
-  // Step 2: Define columns with proper typing
   const columns: GridColDef<Product>[] = [
     {
       field: "slno",
       headerName: "SLNo",
       width: 100,
-      valueGetter: (value, row) =>
-        products.findIndex((p) => p._id === row._id) + 1,
+      valueGetter: (_, row) => products.findIndex((p) => p._id === row._id) + 1,
     },
-    { field: "productName", headerName: "Product name", width: 160 },
+    {
+      field: "productName",
+      headerName: "Product name",
+      width: 160,
+      renderCell: (params) => (
+        <div
+          onClick={() => handleRowClick(params)}
+          onMouseOver={() => setIsMouseOver({ index: params.row._id, value: true })}
+          onMouseOut={() => setIsMouseOver({ index: params.row._id, value: false })}
+          style={{ cursor: "pointer",  textDecoration: isMouseOver?.value && isMouseOver?.index === params.row._id ? "underline" : "" }}
+        >
+          {params.value}
+        </div>
+      ),
+    },
     {
       field: "description",
       headerName: "Description",
@@ -93,9 +110,10 @@ export default function DataTable() {
           >
             <DeleteIcon />
           </IconButton>
-
           <IconButton
-            onClick={() => navigate(`product/editProduct/${params.row._id}`)}
+            onClick={() =>
+              navigate(`/productManagment/editProduct/${params.row._id}`)
+            }
             color="primary"
           >
             <EditIcon />
@@ -112,7 +130,7 @@ export default function DataTable() {
         columns={columns}
         getRowId={(row) => row._id}
         pageSizeOptions={[5, 10]}
-        onRowClick={handleRowClick}
+        // onRowClick={handleRowClick}
         loading={loading}
         sx={{ border: 0, cursor: "pointer" }}
         initialState={{ pagination: { paginationModel } }}
