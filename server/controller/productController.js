@@ -57,7 +57,7 @@ export const addProductController = asyncHandler(async (req, res) => {
       }
     } catch (err) {
       return res.status(400).json({
-        message: "Invalid sizes format. Expected an array of { size, quantity }.",
+        message: "Invalid sizes format. Expected an array of { size, quantity }. ",
       });
     }
 
@@ -109,25 +109,17 @@ export const addProductController = asyncHandler(async (req, res) => {
 // @access  Public
 export const getProductsController = asyncHandler(async (req, res) => {
   try {
-    // Get page and limit from query parameters, default to page 1 and limit 10
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
-
-    // Calculate skip value
     const skip = (page - 1) * limit;
 
-    // Fetch products with pagination (skip and limit)
     const products = await Product.find({ isActive: true })
-    .skip(skip)
-    .limit(limit);
+      .skip(skip)
+      .limit(limit);
   
-    // Get total count of products to calculate total pages
     const totalProducts = await Product.countDocuments();
-
-    // Calculate total pages
     const totalPages = Math.ceil(totalProducts / limit);
 
-    // Return the products and pagination info
     res.status(200).json({
       products,
       pageNo: page,
@@ -145,20 +137,16 @@ export const getProductsController = asyncHandler(async (req, res) => {
 // @access  Public
 export const getProductByIdController = asyncHandler(async (req, res) => {
   try {
-    
     const { id } = req.query;
     console.log(id,"idididididdidididididididi");
 
-    // Find product by ID
     const product = await Product.findById(id);
 
-    // Check if product exists
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     console.log(product,"productproductproductproductproduct");
-    // Return product details
     res.status(200).json({product});
   } catch (error) {
     console.error(error);
@@ -169,16 +157,54 @@ export const getProductByIdController = asyncHandler(async (req, res) => {
 // @route   PUT /api/admin/product/updateProduct/:id
 // @access  lead
 export const updateProductController = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-  const updateData = req.body; // handle FormData parsing with multer
+  try {
+    const { id } = req.params;
 
-  const product = await Product.findByIdAndUpdate(id, updateData, { new: true });
+    // Parse form-data safely
+    const body = JSON.parse(JSON.stringify(req.body));
 
-  if (!product) {
-    return res.status(404).json({ message: "Product not found" });
+    // Existing images from frontend (those not deleted)
+    let existingImages = [];
+    if (body.existingImages) {
+      if (Array.isArray(body.existingImages)) {
+        existingImages = body.existingImages;
+      } else {
+        existingImages = [body.existingImages]; // handle single string
+      }
+    }
+
+    // Upload new files (if any)
+    let newImageUrls = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const imageUrl = await uploadFileToS3(file, sanitizedConfig.AWS_BUCKET_NAME);
+        newImageUrls.push(imageUrl);
+      }
+    }
+
+    // Merge old + new
+    const finalImages = [...existingImages, ...newImageUrls];
+
+    // Prepare update data
+    const updateData = {
+      ...body,
+      image: finalImages,
+    };
+
+    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, { new: true });
+
+    if (!updatedProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    res.status(200).json({ 
+      message: "Product updated successfully", 
+      product: updatedProduct 
+    });
+  } catch (error) {
+    console.error("Error in updateProductController:", error);
+    res.status(500).json({ message: "Server Error" });
   }
-
-  res.status(200).json({ message: "Product updated successfully", product });
 });
 
 
@@ -188,16 +214,12 @@ export const updateProductController = asyncHandler(async (req, res) => {
 export const deleteProductController = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
-
-    // Find product by ID
     const product = await Product.findById(id);
 
-    // If product not found
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    // Set isActive to false
     product.isActive = false;
     await product.save();
 

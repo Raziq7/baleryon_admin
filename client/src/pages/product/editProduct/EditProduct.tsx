@@ -47,7 +47,8 @@ const EditProduct: React.FC = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<ProductForm | null>(null);
-  const [croppedImages, setCroppedImages] = useState<(File | string)[]>([]);
+  const [existingImages, setExistingImages] = useState<string[]>([]); // old URLs
+  const [newFiles, setNewFiles] = useState<File[]>([]); // new uploads
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -77,7 +78,7 @@ const EditProduct: React.FC = () => {
         });
 
         if (product.image && product.image.length > 0) {
-          setCroppedImages(product.image); // URLs
+          setExistingImages(product.image); // set old images separately
         }
 
         if (quill) {
@@ -151,13 +152,9 @@ const EditProduct: React.FC = () => {
 
     updatedData.append("productDetails", (quill?.root.innerHTML as string) || "");
 
-    croppedImages.forEach((file) => {
-      if (file instanceof File) {
-        updatedData.append("files", file);
-      } else {
-        updatedData.append("existingImages", file); // handle existing image URLs
-      }
-    });
+    // ✅ Send existing images and new files separately
+    existingImages.forEach((url) => updatedData.append("existingImages", url));
+    newFiles.forEach((file) => updatedData.append("files", file));
 
     try {
       await api.put(`/admin/product/updateProduct/${id}`, updatedData, {
@@ -191,11 +188,9 @@ const EditProduct: React.FC = () => {
           {/* File Upload */}
           <Grid item xs={12}>
             <FileInput
-              initialImages={croppedImages.filter((img): img is string => typeof img === "string")}
-              onFileChange={(files: File[]) => setCroppedImages([...files])}
-              cropPass={(file: File[]) =>
-                setCroppedImages((prev) => [...prev, file[0]])
-              }
+              initialImages={existingImages}
+              onFileChange={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
+              cropPass={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
             />
           </Grid>
 
