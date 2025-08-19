@@ -87,7 +87,7 @@ function FileInput({
   // Initialize with existing images only once
   useEffect(() => {
     setCroppedImages(initialImages);
-  }, [initialImages]);
+  }, []);
 
   /* ---------- Handle File Selection ---------- */
   const changeHandler = (event: ChangeEvent<HTMLInputElement>) => {

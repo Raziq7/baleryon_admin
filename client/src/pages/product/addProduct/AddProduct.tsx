@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useQuill } from "react-quilljs";
 import "quill/dist/quill.snow.css";
+import { useNavigate } from "react-router-dom";
 import {
   Grid,
   Box,
@@ -10,9 +11,13 @@ import {
   Checkbox,
   FormControlLabel,
   CircularProgress,
-  Alert,
   IconButton,
   Tooltip,
+  Snackbar,
+  Alert,
+  Card,
+  CardMedia,
+  CardActions,
 } from "@mui/material";
 import { colornames } from "color-name-list";
 import FileInput from "../../../components/FileInput";
@@ -40,11 +45,14 @@ const AddProduct: React.FC = () => {
     addColor,
     removeColor,
     resetForm,
-    addProduct
+    addProduct,
   } = useProductStore();
 
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadErr, setUploadErr] = useState<string | null>(null);
+  const [popupMessage, setPopupMessage] = useState<string | null>(null);
+  const [popupType, setPopupType] = useState<"success" | "error">("error");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const navigate = useNavigate();
 
   const { quill, quillRef } = useQuill({ theme: "snow" });
 
@@ -82,8 +90,72 @@ const AddProduct: React.FC = () => {
     }
   };
 
+  // Function to remove individual image
+  const removeImage = (indexToRemove: number) => {
+    const updatedImages = croppedImages.filter(
+      (_, index) => index !== indexToRemove
+    );
+    setCroppedImages(updatedImages);
+  };
+
+  // Function to create image URL for preview
+  const createImageURL = (file: File) => {
+    return URL.createObjectURL(file);
+  };
+
+  const validateForm = () => {
+    const errors: string[] = [];
+
+    if (!formData.productName.trim()) errors.push("Product Name is required");
+    if (!formData.category.trim()) errors.push("Category is required");
+    if (!formData.description.trim()) errors.push("Description is required");
+    if (!formData.purchasePrice || Number(formData.purchasePrice) <= 0)
+      errors.push("Purchase Price must be greater than 0");
+
+    if (formData.sizes.length === 0)
+      errors.push("At least one size is required");
+
+    formData.sizes.forEach((s, i) => {
+      if (!s.size.trim()) errors.push(`Size is required`);
+      if (!s.quantity || Number(s.quantity) <= 0)
+        errors.push(`Quantity is required`);
+    });
+
+    if (croppedImages.length === 0)
+      errors.push("At least one product image is required");
+
+    return errors;
+  };
+
+  const showPopup = (message: string, type: "success" | "error") => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setOpenSnackbar(true);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const errors = validateForm();
+
+    const allEmpty =
+      !formData.productName &&
+      !formData.category &&
+      !formData.description &&
+      !formData.purchasePrice &&
+      formData.sizes.length === 0 &&
+      croppedImages.length === 0;
+
+    if (allEmpty) {
+      showPopup("Please fill all required fields", "error");
+      return;
+    }
+
+    if (errors.length > 0) {
+      showPopup(errors[0], "error");
+      return;
+    }
+
     setIsLoading(true);
 
     const formDataToSend = new FormData();
@@ -108,16 +180,14 @@ const AddProduct: React.FC = () => {
     formDataToSend.append("productDetails", quill?.root.innerHTML || "");
 
     try {
-      // await axios.post(
-      //   "http://localhost:3000/api/admin/product/addProduct",
-      //   formDataToSend
-      // );
-      await addProduct(formDataToSend)
-      alert("Product added successfully!");
+      await addProduct(formDataToSend);
       resetForm();
+      showPopup("Product added successfully!", "success");
+      setIsLoading(false);
+      setTimeout(() => navigate("/productManagment"),1000);
     } catch (err) {
       console.error(err);
-      setUploadErr("Error submitting product. Please try again.");
+      showPopup("Error submitting product. Please try again.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +195,22 @@ const AddProduct: React.FC = () => {
 
   return (
     <Box sx={{ p: 3 }}>
-      {uploadErr && <Alert severity="error">{uploadErr}</Alert>}
+      {/* Snackbar for both success & error */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={popupType}
+          sx={{ width: "100%", fontWeight: "bold" }}
+          onClose={() => setOpenSnackbar(false)}
+        >
+          {popupMessage}
+        </Alert>
+      </Snackbar>
+
       {isLoading ? (
         <Box
           sx={{
@@ -144,12 +229,66 @@ const AddProduct: React.FC = () => {
             <Grid item xs={12}>
               <Typography variant="h6">Upload Product Images</Typography>
               <FileInput
-                onFileChange={(files) => console.log("Selected files:", files)}
+                onFileChange={(files) => setCroppedImages([...files])}
                 cropPass={(file) =>
                   setCroppedImages([...croppedImages, file[0]])
                 }
               />
             </Grid>
+
+            {/* Image Preview Section */}
+            {croppedImages.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Uploaded Images ({croppedImages.length})
+                </Typography>
+                <Grid container spacing={2}>
+                  {croppedImages.map((file, index) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+                      <Card sx={{ maxWidth: 300, position: "relative" }}>
+                        <CardMedia
+                          component="img"
+                          height="200"
+                          image={createImageURL(file)}
+                          alt={`Product image ${index + 1}`}
+                          sx={{
+                            objectFit: "cover",
+                            borderRadius: 1,
+                          }}
+                        />
+                        <CardActions
+                          sx={{ padding: 1, justifyContent: "center" }}
+                        >
+                          <Button
+                            size="small"
+                            color="error"
+                            variant="outlined"
+                            onClick={() => removeImage(index)}
+                            startIcon={<i className="fas fa-trash" />}
+                          >
+                            Remove
+                          </Button>
+                        </CardActions>
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            top: 8,
+                            right: 8,
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                            color: "white",
+                            padding: "4px 8px",
+                            borderRadius: "4px",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {index + 1}
+                        </Box>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Grid>
+            )}
 
             {/* Product Name */}
             <Grid item xs={12} md={6}>
@@ -203,7 +342,7 @@ const AddProduct: React.FC = () => {
               )}
             </Grid>
 
-            {/* ✅ Purchase Price */}
+            {/* Purchase Price */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -215,7 +354,7 @@ const AddProduct: React.FC = () => {
               />
             </Grid>
 
-            {/* ✅ Category */}
+            {/* Category */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -226,7 +365,7 @@ const AddProduct: React.FC = () => {
               />
             </Grid>
 
-            {/* ✅ Note */}
+            {/* Note */}
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
@@ -241,7 +380,7 @@ const AddProduct: React.FC = () => {
             <Grid item xs={12}>
               <Typography variant="h6">Sizes</Typography>
               {formData.sizes.map((s, i) => (
-                <Grid container spacing={2} key={i}>
+                <Grid container spacing={2} key={i} sx={{ mb: 1 }}>
                   <Grid item xs={5}>
                     <TextField
                       fullWidth
@@ -318,9 +457,11 @@ const AddProduct: React.FC = () => {
               </Grid>
             ))}
 
-            {/* Quill Editor */}
+            {/* Quill Editor (Optional) */}
             <Grid item xs={12}>
-              <Typography variant="h6">Detailed Description</Typography>
+              <Typography variant="h6">
+                Detailed Description (Optional)
+              </Typography>
               <div
                 ref={quillRef}
                 style={{ height: 200, border: "1px solid #ccc" }}

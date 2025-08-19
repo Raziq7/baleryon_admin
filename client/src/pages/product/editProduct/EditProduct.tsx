@@ -11,6 +11,7 @@ import {
   FormControlLabel,
   Typography,
   CircularProgress,
+  Snackbar,
   Alert,
 } from "@mui/material";
 import api from "../../../utils/baseUrl";
@@ -47,10 +48,13 @@ const EditProduct: React.FC = () => {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<ProductForm | null>(null);
-  const [existingImages, setExistingImages] = useState<string[]>([]); // old URLs
-  const [newFiles, setNewFiles] = useState<File[]>([]); // new uploads
+  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [popupMessage, setPopupMessage] = useState<string | null>(null);
+  const [popupType, setPopupType] = useState<"success" | "error">("error");
+  const [openSnackbar, setOpenSnackbar] = useState(false);
 
   const { quill, quillRef } = useQuill({ theme: "snow" });
 
@@ -78,7 +82,7 @@ const EditProduct: React.FC = () => {
         });
 
         if (product.image && product.image.length > 0) {
-          setExistingImages(product.image); // set old images separately
+          setExistingImages(product.image);
         }
 
         if (quill) {
@@ -89,10 +93,45 @@ const EditProduct: React.FC = () => {
       })
       .catch((err) => {
         console.error(err);
-        setErrorMsg("Failed to fetch product details.");
+        showPopup("Failed to fetch product details.", "error");
         setIsLoading(false);
       });
   }, [id, quill]);
+
+  /* ---------- Helper Functions ---------- */
+  const showPopup = (message: string, type: "success" | "error") => {
+    setPopupMessage(message);
+    setPopupType(type);
+    setOpenSnackbar(true);
+  };
+
+  /* ---------- Validation ---------- */
+  const validateForm = (): string[] => {
+    if (!formData) return ["Form data is not loaded"];
+    const errors: string[] = [];
+
+    if (!formData.productName.trim()) errors.push("Product Name is required");
+    if (!formData.category.trim()) errors.push("Category is required");
+    if (!formData.description.trim()) errors.push("Description is required");
+    
+    if (!formData.purchasePrice || Number(formData.purchasePrice) <= 0)
+      errors.push("Purchase Price must be greater than 0");
+
+    if (formData.sizes.length === 0)
+      errors.push("At least one size is required");
+
+    formData.sizes.forEach((s, i) => {
+      if (!s.size.trim())
+        errors.push(`Size field at row ${i + 1} is required`);
+      if (!s.quantity || Number(s.quantity) <= 0)
+        errors.push(`Quantity at row ${i + 1} must be greater than 0`);
+    });
+
+    if (existingImages.length === 0 && newFiles.length === 0)
+      errors.push("At least one product image is required");
+
+    return errors;
+  };
 
   /* ---------- Handlers ---------- */
   const handleChange = (
@@ -134,7 +173,29 @@ const EditProduct: React.FC = () => {
     e.preventDefault();
     if (!formData) return;
 
-    setIsLoading(true);
+    const errors = validateForm();
+
+    // Check if all fields are empty (similar to AddProduct)
+    const allEmpty =
+      !formData.productName &&
+      !formData.category &&
+      !formData.description &&
+      !formData.purchasePrice &&
+      formData.sizes.length === 0 &&
+      existingImages.length === 0 &&
+      newFiles.length === 0;
+
+    if (allEmpty) {
+      showPopup("Please fill all required fields", "error");
+      return;
+    }
+
+    if (errors.length > 0) {
+      showPopup(errors[0], "error");
+      return;
+    }
+
+    setIsSubmitting(true);
     const token = localStorage.getItem("auth_token");
     const updatedData = new FormData();
 
@@ -151,8 +212,6 @@ const EditProduct: React.FC = () => {
     });
 
     updatedData.append("productDetails", (quill?.root.innerHTML as string) || "");
-
-    // ✅ Send existing images and new files separately
     existingImages.forEach((url) => updatedData.append("existingImages", url));
     newFiles.forEach((file) => updatedData.append("files", file));
 
@@ -163,196 +222,243 @@ const EditProduct: React.FC = () => {
           "Content-Type": "multipart/form-data",
         },
       });
-      alert("Product updated successfully!");
-      navigate("/productManagment");
+      showPopup("Product updated successfully!", "success");
+      setTimeout(() => navigate("/productManagment"), 1500);
     } catch (err) {
       console.error(err);
-      alert("Error updating product.");
+      showPopup("Error updating product. Please try again.", "error");
     } finally {
-      setIsLoading(false);
+      setIsSubmitting(false);
     }
   };
 
   /* ---------- Render ---------- */
-  if (isLoading) return <CircularProgress />;
-  if (errorMsg) return <Alert severity="error">{errorMsg}</Alert>;
-  if (!formData) return null;
+  if (isLoading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!formData) {
+    return (
+      <Alert severity="error">
+        Failed to load product data. Please try again.
+      </Alert>
+    );
+  }
 
   return (
     <Box p={3}>
+      {/* Snackbar for both success & error - Same as AddProduct */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setOpenSnackbar(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert
+          severity={popupType}
+          sx={{ width: "100%", fontWeight: "bold" }}
+          onClose={() => setOpenSnackbar(false)}
+        >
+          {popupMessage}
+        </Alert>
+      </Snackbar>
+
       <Typography variant="h5" gutterBottom>
         Edit Product
       </Typography>
-      <form onSubmit={handleSubmit}>
-        <Grid container spacing={2}>
-          {/* File Upload */}
-          <Grid item xs={12}>
-            <FileInput
-              initialImages={existingImages}
-              onFileChange={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
-              cropPass={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
-            />
-          </Grid>
 
-          {/* Product Name */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              name="productName"
-              label="Product Name"
-              value={formData.productName}
-              onChange={handleChange}
-              required
-            />
-          </Grid>
+      {isSubmitting ? (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            height: "100vh",
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <Grid container spacing={2}>
+            {/* File Upload */}
+            <Grid item xs={12}>
+              <Typography variant="h6">Upload Product Images</Typography>
+              <FileInput
+                initialImages={existingImages}
+                onFileChange={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
+                cropPass={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
+              />
+            </Grid>
 
-          {/* Short Description */}
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              name="description"
-              label="Short Description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              multiline
-            />
-          </Grid>
+            {/* Product Name */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Product Name"
+                name="productName"
+                value={formData.productName}
+                onChange={handleChange}
+              />
+            </Grid>
 
-          {/* Price & Discount */}
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              name="price"
-              label="Price"
-              value={formData.price}
-              onChange={handleChange}
-              type="number"
-              required
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              name="discount"
-              label="Discount"
-              value={formData.discount}
-              onChange={handleChange}
-              type="number"
-            />
-          </Grid>
+            {/* Description */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                multiline
+              />
+            </Grid>
 
-          {/* Purchase Price & Category */}
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              name="purchasePrice"
-              label="Purchase Price"
-              value={formData.purchasePrice}
-              onChange={handleChange}
-              type="number"
-            />
-          </Grid>
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              name="category"
-              label="Category"
-              value={formData.category}
-              onChange={handleChange}
-            />
-          </Grid>
+            {/* Price */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Price"
+                name="price"
+                type="number"
+                value={formData.price}
+                onChange={handleChange}
+              />
+            </Grid>
 
-          {/* Note */}
-          <Grid item xs={6}>
-            <TextField
-              fullWidth
-              name="note"
-              label="Note"
-              value={formData.note}
-              onChange={handleChange}
-            />
-          </Grid>
+            {/* Discount */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Discount"
+                name="discount"
+                type="number"
+                value={formData.discount}
+                onChange={handleChange}
+              />
+            </Grid>
 
-          {/* Sizes */}
-          <Grid item xs={12}>
-            <Typography variant="h6">Sizes and Quantities</Typography>
-            {formData.sizes.map((sizeRow, index) => (
-              <Grid container spacing={2} alignItems="center" key={index}>
-                <Grid item xs={5}>
-                  <TextField
-                    fullWidth
-                    placeholder="Size (e.g., S, M, L)"
-                    value={sizeRow.size}
+            {/* Purchase Price */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Purchase Price"
+                name="purchasePrice"
+                type="number"
+                value={formData.purchasePrice}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            {/* Category */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Category"
+                name="category"
+                value={formData.category}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            {/* Note */}
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                placeholder="Note"
+                name="note"
+                value={formData.note}
+                onChange={handleChange}
+              />
+            </Grid>
+
+            {/* Sizes */}
+            <Grid item xs={12}>
+              <Typography variant="h6">Sizes</Typography>
+              {formData.sizes.map((sizeRow, index) => (
+                <Grid container spacing={2} key={index}>
+                  <Grid item xs={5}>
+                    <TextField
+                      fullWidth
+                      placeholder="Size"
+                      value={sizeRow.size}
+                      onChange={(e) =>
+                        handleSizeChange(index, "size", e.target.value)
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={5}>
+                    <TextField
+                      fullWidth
+                      placeholder="Quantity"
+                      type="number"
+                      value={sizeRow.quantity}
+                      onChange={(e) =>
+                        handleSizeChange(index, "quantity", e.target.value)
+                      }
+                    />
+                  </Grid>
+                  <Grid item xs={2}>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => handleRemoveSize(index)}
+                    >
+                      Remove
+                    </Button>
+                  </Grid>
+                </Grid>
+              ))}
+              <Button onClick={handleAddSize} sx={{ mt: 1 }}>
+                Add Size
+              </Button>
+            </Grid>
+
+            {/* Quill Editor */}
+            <Grid item xs={12}>
+              <Typography variant="h6">
+                Detailed Description (Optional)
+              </Typography>
+              <div
+                ref={quillRef}
+                style={{ height: 200, border: "1px solid #ccc" }}
+              />
+            </Grid>
+
+            {/* Returnable Checkbox */}
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.isReturn}
                     onChange={(e) =>
-                      handleSizeChange(index, "size", e.target.value)
+                      setFormData({ ...formData, isReturn: e.target.checked })
                     }
                   />
-                </Grid>
-                <Grid item xs={5}>
-                  <TextField
-                    fullWidth
-                    placeholder="Quantity"
-                    type="number"
-                    value={sizeRow.quantity}
-                    onChange={(e) =>
-                      handleSizeChange(index, "quantity", e.target.value)
-                    }
-                  />
-                </Grid>
-                <Grid item xs={2}>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    onClick={() => handleRemoveSize(index)}
-                  >
-                    Remove
-                  </Button>
-                </Grid>
-              </Grid>
-            ))}
-            <Button variant="outlined" onClick={handleAddSize} sx={{ mt: 2 }}>
-              Add Size
-            </Button>
-          </Grid>
+                }
+                label="Is Returnable"
+              />
+            </Grid>
 
-          {/* Detailed Description */}
-          <Grid item xs={12}>
-            <Typography variant="h6">Detailed Description</Typography>
-            <div
-              ref={quillRef}
-              style={{ height: "200px", border: "1px solid #ccc" }}
-            />
+            <Grid item xs={12}>
+              <Button type="submit" variant="contained" fullWidth>
+                Update Product
+              </Button>
+            </Grid>
           </Grid>
-
-          {/* Returnable */}
-          <Grid item xs={6}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.isReturn}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isReturn: e.target.checked })
-                  }
-                />
-              }
-              label="Returnable"
-            />
-          </Grid>
-
-          {/* Submit */}
-          <Grid item xs={12}>
-            <Button
-              variant="contained"
-              color="primary"
-              type="submit"
-              fullWidth
-            >
-              Update Product
-            </Button>
-          </Grid>
-        </Grid>
-      </form>
+        </form>
+      )}
     </Box>
   );
 };
