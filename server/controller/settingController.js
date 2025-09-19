@@ -86,6 +86,6 @@ export const deleteBanner = asyncHandler(async (req, res) => {
     console.error("S3 deletion failed:", err.message);
   }
 
-  await banner.remove();
+   await banner.deleteOne();
   res.status(200).json({ message: "Banner deleted" });
 });

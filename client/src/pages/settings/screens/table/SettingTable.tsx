@@ -1,12 +1,24 @@
 import * as React from "react";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
 import { useNavigate } from "react-router-dom";
 import api from "../../../../utils/baseUrl";
 import { Button, Typography } from "@mui/material";
 
+// ✅ Define types
+interface Banner {
+  _id: string;
+  image: string;
+}
+
+interface RowData {
+  id: string;
+  SlNo: number;
+  image: string;
+}
+
 export default function SettingsTable() {
-  const [rows, setRows] = React.useState([]);
+  const [rows, setRows] = React.useState<RowData[]>([]);
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0,
     pageSize: 5,
@@ -21,8 +33,9 @@ export default function SettingsTable() {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((response) => {
+        const banners: Banner[] = response.data;
         setRows(
-          response.data?.map((item,index) => ({
+          banners.map((item, index) => ({
             id: item._id,
             SlNo: index + 1,
             image: item.image,
@@ -30,23 +43,23 @@ export default function SettingsTable() {
         );
       })
       .catch((error) => {
-        console.error("Error fetching products:", error);
+        console.error("Error fetching banners:", error);
       });
   }, []);
 
-  const handleRowClick = (params) => {
-    navigate(`productDetail/${params.row.id}`); // You can adjust this route
+  // ✅ Type params
+  const handleRowClick = (params: GridRowParams) => {
+    navigate(`productDetail/${params.row.id}`);
   };
 
   const handleDelete = async (id: string) => {
     const token = localStorage.getItem("auth_token");
 
     try {
-      await api.delete(`/admin/setting/deleteUser?id=${id}`, {
+      await api.delete(`/admin/setting/deleteBanner?id=${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Remove the deleted row from state
       setRows((prevRows) => prevRows.filter((row) => row.id !== id));
     } catch (error) {
       console.error("Delete failed:", error);
@@ -86,7 +99,7 @@ export default function SettingsTable() {
           color="error"
           size="small"
           onClick={(e) => {
-            e.stopPropagation(); // Prevent row click navigation
+            e.stopPropagation();
             handleDelete(params.row.id);
           }}
         >
@@ -94,10 +107,6 @@ export default function SettingsTable() {
         </Button>
       ),
     },
-
-    // { field: 'productPrice', headerName: 'Product Price', type: 'number', width: 160 },
-    // { field: 'discount', headerName: 'Discount Price', type: 'number', width: 160 },
-    // { field: 'action', headerName: 'Action', width: 160 },
   ];
 
   return (
@@ -114,10 +123,10 @@ export default function SettingsTable() {
           border: 0,
           cursor: "pointer",
           "& .MuiDataGrid-row": {
-            marginBottom: "12px", // Add space between rows
-            borderRadius: "8px", // Optional: soften row edges
-            backgroundColor: "#fafafa", // Optional: light background
-            boxShadow: "0 2px 4px rgba(0,0,0,0.05)", // Optional: subtle shadow
+            marginBottom: "12px",
+            borderRadius: "8px",
+            backgroundColor: "#fafafa",
+            boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
           },
         }}
         initialState={{ pagination: { paginationModel } }}

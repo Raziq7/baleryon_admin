@@ -7,20 +7,21 @@ import {
   Typography,
   Slider,
 } from "@mui/material";
-import Cropper from "react-easy-crop";
+import Cropper, { Area } from "react-easy-crop";
 import { getCroppedImg } from "./cropUtils"; // helper we'll create below
-
 function CategoryUtils() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [croppedImage, setCroppedImage] = useState<string | null>(null);
 
-  const onCropComplete = useCallback((_croppedArea, croppedPixels) => {
-    setCroppedAreaPixels(croppedPixels);
-  }, []);
-
+  const onCropComplete = useCallback(
+    (_croppedArea: Area, croppedPixels: Area) => {
+      setCroppedAreaPixels(croppedPixels);
+    },
+    []
+  );
   const handleFileSelect = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {

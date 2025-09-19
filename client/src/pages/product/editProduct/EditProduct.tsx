@@ -113,7 +113,7 @@ const EditProduct: React.FC = () => {
     if (!formData.productName.trim()) errors.push("Product Name is required");
     if (!formData.category.trim()) errors.push("Category is required");
     if (!formData.description.trim()) errors.push("Description is required");
-    
+
     if (!formData.purchasePrice || Number(formData.purchasePrice) <= 0)
       errors.push("Purchase Price must be greater than 0");
 
@@ -121,8 +121,7 @@ const EditProduct: React.FC = () => {
       errors.push("At least one size is required");
 
     formData.sizes.forEach((s, i) => {
-      if (!s.size.trim())
-        errors.push(`Size field at row ${i + 1} is required`);
+      if (!s.size.trim()) errors.push(`Size field at row ${i + 1} is required`);
       if (!s.quantity || Number(s.quantity) <= 0)
         errors.push(`Quantity at row ${i + 1} must be greater than 0`);
     });
@@ -138,9 +137,11 @@ const EditProduct: React.FC = () => {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) =>
-      prev ? { ...prev, [name]: value } : (prev as ProductForm)
-    );
+    setFormData((prev) => {
+      if (!prev) return prev; // safely return null
+
+      return { ...prev, [name]: value };
+    });
   };
 
   const handleSizeChange = (index: number, key: keyof Size, value: string) => {
@@ -154,7 +155,10 @@ const EditProduct: React.FC = () => {
     if (!formData) return;
     setFormData((prevData) =>
       prevData
-        ? { ...prevData, sizes: [...prevData.sizes, { size: "", quantity: "" }] }
+        ? {
+            ...prevData,
+            sizes: [...prevData.sizes, { size: "", quantity: "" }],
+          }
         : prevData
     );
   };
@@ -199,19 +203,26 @@ const EditProduct: React.FC = () => {
     const token = localStorage.getItem("auth_token");
     const updatedData = new FormData();
 
-    (Object.entries(formData) as [keyof ProductForm, string | number | boolean][])
-      .forEach(([key, value]) => {
-        if (key !== "sizes") {
-          updatedData.append(key, String(value));
-        }
-      });
+    (
+      Object.entries(formData) as [
+        keyof ProductForm,
+        string | number | boolean
+      ][]
+    ).forEach(([key, value]) => {
+      if (key !== "sizes") {
+        updatedData.append(key, String(value));
+      }
+    });
 
     formData.sizes.forEach((s, index) => {
       updatedData.append(`sizes[${index}][size]`, s.size);
       updatedData.append(`sizes[${index}][quantity]`, s.quantity);
     });
 
-    updatedData.append("productDetails", (quill?.root.innerHTML as string) || "");
+    updatedData.append(
+      "productDetails",
+      (quill?.root.innerHTML as string) || ""
+    );
     existingImages.forEach((url) => updatedData.append("existingImages", url));
     newFiles.forEach((file) => updatedData.append("files", file));
 
@@ -297,8 +308,12 @@ const EditProduct: React.FC = () => {
               <Typography variant="h6">Upload Product Images</Typography>
               <FileInput
                 initialImages={existingImages}
-                onFileChange={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
-                cropPass={(files: File[]) => setNewFiles((prev) => [...prev, ...files])}
+                onFileChange={(files: File[]) =>
+                  setNewFiles((prev) => [...prev, ...files])
+                }
+                cropPass={(files: File[]) =>
+                  setNewFiles((prev) => [...prev, ...files])
+                }
               />
             </Grid>
 

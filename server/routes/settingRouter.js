@@ -36,6 +36,6 @@ router.get("/getUser/:id", protect, getBannerById);
 router.put("/updateUser/:id", protect, updateBanner);
 
 // Delete user by ID (Admin only)
-router.delete("/deleteUser", protect, deleteBanner);
+router.delete("/deleteBanner", protect, deleteBanner);
 
 export default router;

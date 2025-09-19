@@ -10,10 +10,14 @@ export default function useAuthCheck() {
     const storedToken = localStorage.getItem("auth_token");
     if (storedToken) {
       setAuth(storedToken);
-    } else {
+    }
+  }, [setAuth]); // Set auth on mount only
+
+  useEffect(() => {
+    if (!token) {
       navigate("/signin");
     }
-  }, [navigate, setAuth]);
+  }, [token, navigate]); // ✅ Redirect whenever token becomes null
 
   return token;
 }

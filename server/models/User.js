@@ -26,4 +26,4 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ email: 1, phone: 1 });
 
 // Create and export the user model
-export default mongoose.model("users", userSchema);
+export default mongoose.model("User", userSchema, "users");

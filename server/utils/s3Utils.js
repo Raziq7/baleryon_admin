@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import { v4 as uuidv4 } from "uuid";
 import fs from "fs"; // File system module to read the file
-import path from "path"; // Path module for working with file paths
+// import path from "path"; // Path module for working with file paths
 import sanitizedConfig from "../config.js";
 
 // Initialize S3 client

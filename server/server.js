@@ -8,6 +8,7 @@ import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
 import productRouter from "./routes/productRouter.js";
 import userManagmentRouter from "./routes/userManagmentRouter.js";
 import authRouter from "./routes/authRouter.js";
+import orderRoutes from "./routes/orderRoutes.js";
 import settingRouter from "./routes/settingRouter.js";
 
 import sanitizedConfig from "./config.js";
@@ -18,7 +19,7 @@ const app = express();
 app.use(
   cors({
     origin: "*",
-    methods: ["GET", "POST", "PUT"],
+    methods: ["GET", "POST", "PUT","DELETE"],
   })
 );
 
@@ -35,6 +36,8 @@ app.use("/api/admin/product/", productRouter);
 
 // user managment router
 app.use("/api/admin/userManagment/", userManagmentRouter);
+
+app.use("/api/admin/order", orderRoutes);
 
 // setting
 app.use("/api/admin/setting/", settingRouter);

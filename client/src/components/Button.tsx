@@ -1,20 +1,29 @@
-import React from 'react';
-import { Button } from '@mui/material';
+// CustomButton.tsx
+import * as React from "react";
+import { Button, ButtonProps } from "@mui/material";
+import { SxProps, Theme } from "@mui/system";
 
-// CustomButton Component
-const CustomButton = ({ variant, color, sx, onClick, children }) => {
+type CustomButtonProps = Omit<ButtonProps, "variant" | "color" | "sx"> & {
+  variant?: ButtonProps["variant"];
+  color?: ButtonProps["color"];
+  sx?: SxProps<Theme>;
+};
+
+const CustomButton: React.FC<CustomButtonProps> = ({
+  variant = "contained",
+  color = "primary",
+  sx,
+  children,
+  ...rest
+}) => {
   return (
     <Button
-      variant={variant || "contained"} // Default variant is "contained"
-      color={color || "primary"} // Default color is "primary"
-      sx={{
-        mb: 2,
-        mt: 2,
-        ...sx, // Allows overriding or adding more styles via `sx` prop
-      }}
-      onClick={onClick}
+      variant={variant}
+      color={color}
+      sx={{ mb: 2, mt: 2, ...(sx || {}) }}
+      {...rest}
     >
-      {children} {/* Text passed as children */}
+      {children}
     </Button>
   );
 };

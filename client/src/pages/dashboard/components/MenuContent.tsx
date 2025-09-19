@@ -1,4 +1,3 @@
-import * as React from 'react';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -15,10 +14,10 @@ import HelpRoundedIcon from '@mui/icons-material/HelpRounded';
 import { useNavigate } from 'react-router';
 
 const mainListItems = [
-  { text: 'Home', icon: <HomeRoundedIcon />,url:"Home" },
+  { text: 'Home', icon: <HomeRoundedIcon />,url:"/" },
   { text: 'Product Management', icon: <AnalyticsRoundedIcon />,url:"productManagment" },
   { text: 'Clients', icon: <PeopleRoundedIcon />,url:"clients" },
-  { text: 'Tasks', icon: <AssignmentRoundedIcon />,url:"tasks" },
+  { text: 'Orders', icon: <AssignmentRoundedIcon />,url:"orderManagement" },
 ];
 
 const secondaryListItems = [

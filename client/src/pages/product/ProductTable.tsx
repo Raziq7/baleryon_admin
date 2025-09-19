@@ -1,10 +1,5 @@
 import * as React from "react";
-import {
-  DataGrid,
-  GridColDef,
-  GridRenderCellParams,
-  GridRowParams,
-} from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRenderCellParams } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
 import { useNavigate } from "react-router-dom";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -45,8 +40,8 @@ export default function DataTable() {
   };
 
   const handleRowClick = React.useCallback(
-    (params: GridRowParams) => {
-      navigate(`/productManagment/productDetail/${params.row._id}`);
+    (row: Product) => {
+      navigate(`/productManagment/productDetail/${row._id}`);
     },
     [navigate]
   );
@@ -64,10 +59,20 @@ export default function DataTable() {
       width: 160,
       renderCell: (params) => (
         <div
-          onClick={() => handleRowClick(params)}
-          onMouseOver={() => setIsMouseOver({ index: params.row._id, value: true })}
-          onMouseOut={() => setIsMouseOver({ index: params.row._id, value: false })}
-          style={{ cursor: "pointer",  textDecoration: isMouseOver?.value && isMouseOver?.index === params.row._id ? "underline" : "" }}
+          onClick={() => handleRowClick(params.row)}
+          onMouseOver={() =>
+            setIsMouseOver({ index: params.row._id, value: true })
+          }
+          onMouseOut={() =>
+            setIsMouseOver({ index: params.row._id, value: false })
+          }
+          style={{
+            cursor: "pointer",
+            textDecoration:
+              isMouseOver?.value && isMouseOver?.index === params.row._id
+                ? "underline"
+                : "",
+          }}
         >
           {params.value}
         </div>

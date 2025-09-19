@@ -1,4 +1,3 @@
-import React from 'react'
 import DataTable from './CustomerTable.js'
 import { Typography } from '@mui/material'
 import { useNavigate } from 'react-router'

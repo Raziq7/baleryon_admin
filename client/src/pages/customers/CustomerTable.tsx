@@ -1,32 +1,24 @@
-// src/components/customer/DataTable.tsx
 import * as React from "react";
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridRowParams } from "@mui/x-data-grid";
 import Paper from "@mui/material/Paper";
 import { useNavigate } from "react-router-dom";
 import { useCustomerStore } from "../../store/useCustomerStore";
 
 export default function DataTable() {
   const navigate = useNavigate();
-
-  const {
-    customers,
-    fetchCustomers,
-    loading,
-    error,
-  } = useCustomerStore();
+  const { customers, fetchCustomers, loading, error } = useCustomerStore();
 
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0,
     pageSize: 5,
   });
 
-  // fetch customers on mount
   React.useEffect(() => {
     fetchCustomers();
   }, [fetchCustomers]);
 
-  const handleRowClick = (params:unknown) => {
-    navigate(`customerDetail/${params.row.id}`); // changed route to customerDetail
+  const handleRowClick = (params: GridRowParams) => {
+    navigate(`customerDetail/${params.row.id}`);
   };
 
   const columns: GridColDef[] = [
@@ -59,7 +51,7 @@ export default function DataTable() {
   return (
     <Paper sx={{ height: 400, width: "100%" }}>
       <DataGrid
-        rows={customers.map((c) => ({ ...c, id: c._id }))} // map id for DataGrid
+        rows={customers.map((c) => ({ ...c, id: c._id }))}
         columns={columns}
         pageSizeOptions={[5, 10]}
         onRowClick={handleRowClick}

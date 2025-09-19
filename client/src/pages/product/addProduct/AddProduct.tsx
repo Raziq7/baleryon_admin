@@ -57,11 +57,11 @@ const AddProduct: React.FC = () => {
   const { quill, quillRef } = useQuill({ theme: "snow" });
 
   const colors: Record<string, string> = colornames.reduce(
-    (o, { name, hex }) => {
-      o[name.toLowerCase()] = hex;
-      return o;
+    (acc: Record<string, string>, item: { name: string; hex: string }) => {
+      acc[item.name.toLowerCase()] = item.hex;
+      return acc;
     },
-    {} as Record<string, string>
+    {}
   );
 
   const isValidHex = (hex: string) =>
@@ -115,7 +115,7 @@ const AddProduct: React.FC = () => {
     if (formData.sizes.length === 0)
       errors.push("At least one size is required");
 
-    formData.sizes.forEach((s, i) => {
+    formData.sizes.forEach((s) => {
       if (!s.size.trim()) errors.push(`Size is required`);
       if (!s.quantity || Number(s.quantity) <= 0)
         errors.push(`Quantity is required`);
@@ -184,7 +184,7 @@ const AddProduct: React.FC = () => {
       resetForm();
       showPopup("Product added successfully!", "success");
       setIsLoading(false);
-      setTimeout(() => navigate("/productManagment"),1000);
+      setTimeout(() => navigate("/productManagment"), 1000);
     } catch (err) {
       console.error(err);
       showPopup("Error submitting product. Please try again.", "error");
