@@ -2,6 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import bodyParser from "body-parser";
+import path from "path";
+
 
 import connect from "./connect/connect.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
@@ -42,9 +44,22 @@ app.use("/api/admin/order", orderRoutes);
 // setting
 app.use("/api/admin/setting/", settingRouter);
 
-app.get("/", (req, res) => {
-  res.send("API is running!");
-});
+// app.get("/", (req, res) => {
+//   res.send("API is running!");
+// });
+
+
+let dirname = path.resolve();
+
+
+if (process.env.NODE_ENV === "production") {
+  app.use(express.static(path.join(dirname, "../client", "dist")));
+  
+  app.get("*", (req, res) => {
+    console.log(dirname,"process.env.NODE_ENVprocess.env.NODE_ENVprocess.env.NODE_ENV");
+    res.sendFile(path.join(dirname, "../client", "dist", "index.html"));
+  });
+}
 
 app.use(notFound);
 app.use(errorHandler);
