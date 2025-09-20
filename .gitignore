@@ -24,7 +24,6 @@ yarn.lock
 .DS_Store
 
 # Build output
-/dist
 build/
 coverage/
 
@@ -45,7 +44,6 @@ coverage/
 
 # Production build files
 build/
-/dist
 
 # Temporary files
 *.tmp
