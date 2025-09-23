@@ -14,9 +14,10 @@ import {
   Card as MuiCard,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom"; // ✅ use react-router-dom not react-router
 import ForgotPassword from "./components/ForgotPassword";
 import { authLogin } from "../../api/auth";
+import { useAuthStore } from "../../store/authStore";
 
 const Card = styled(MuiCard)(({ theme }) => ({
   display: "flex",
@@ -38,8 +39,7 @@ const Card = styled(MuiCard)(({ theme }) => ({
 }));
 
 const SignInContainer = styled(Stack)(({ theme }) => ({
-  height: "calc((1 - var(--template-frame-height, 0)) * 100dvh)",
-  minHeight: "100%",
+  height: "100vh",
   padding: theme.spacing(2),
   [theme.breakpoints.up("sm")]: {
     padding: theme.spacing(4),
@@ -91,7 +91,8 @@ export default function SignIn() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const isAuthenticated = localStorage.getItem("isAdminExit");
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const setAuth = useAuthStore((state) => state.setAuth);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -119,7 +120,7 @@ export default function SignIn() {
 
     if (!password.value || password.value.length < 6) {
       setPasswordError(true);
-      setPasswordErrorMessage("Password must be at least 6 characters long.");
+      setPasswordErrorMessage("Password must be at least 6 characters.");
       isValid = false;
     } else {
       setPasswordError(false);
@@ -143,17 +144,22 @@ export default function SignIn() {
       const res = (await authLogin(email, password)) as AuthLoginResponse;
 
       if (res.status === 200 && res.data?.token) {
-        localStorage.setItem("auth_token", res.data.token);
+        // ✅ Zustand auth state
+        setAuth(res.data.token);
         localStorage.setItem("isAdminExit", JSON.stringify(res.data.admin));
+
         setLoginError("");
-        navigate("/");
+        navigate("/"); // Redirect after login
       } else {
-        setLoginError(res.response?.data.message || "Invalid login credentials.");
+        setLoginError(
+          res.response?.data.message || "Invalid login credentials."
+        );
       }
     } catch (error: any) {
       console.error("Login error:", error);
       setLoginError(
-        error?.response?.data?.message || "Something went wrong. Please try again."
+        error?.response?.data?.message ||
+          "Something went wrong. Please try again."
       );
     } finally {
       setLoading(false);
@@ -168,7 +174,6 @@ export default function SignIn() {
           variant="h4"
           sx={{
             textAlign: "center",
-            width: "100%",
             fontSize: "clamp(2rem, 10vw, 2.15rem)",
           }}
         >
@@ -184,42 +189,37 @@ export default function SignIn() {
           sx={{
             display: "flex",
             flexDirection: "column",
-            width: "100%",
             gap: 2,
           }}
         >
           <FormControl>
             <FormLabel htmlFor="email">Email</FormLabel>
             <TextField
-              error={emailError}
-              helperText={emailErrorMessage}
               id="email"
               name="email"
               type="email"
               placeholder="your@email.com"
-              required
               fullWidth
-              variant="outlined"
+              required
               autoComplete="email"
               autoFocus
-              color={emailError ? "error" : "primary"}
+              error={emailError}
+              helperText={emailErrorMessage}
             />
           </FormControl>
 
           <FormControl>
             <FormLabel htmlFor="password">Password</FormLabel>
             <TextField
-              error={passwordError}
-              helperText={passwordErrorMessage}
               id="password"
               name="password"
               type="password"
               placeholder="••••••"
-              required
               fullWidth
-              variant="outlined"
+              required
               autoComplete="current-password"
-              color={passwordError ? "error" : "primary"}
+              error={passwordError}
+              helperText={passwordErrorMessage}
             />
           </FormControl>
 
@@ -230,12 +230,7 @@ export default function SignIn() {
 
           <ForgotPassword open={open} handleClose={handleClose} />
 
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            disabled={loading}
-          >
+          <Button type="submit" fullWidth variant="contained" disabled={loading}>
             {loading ? "Signing in..." : "Sign in"}
           </Button>
 
