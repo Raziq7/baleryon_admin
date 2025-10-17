@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
   Box,
@@ -8,10 +8,16 @@ import {
   Grid,
   Paper,
   CircularProgress,
+  Stack,
 } from "@mui/material";
 import { useProductStore } from "../../store/useProductStore";
 
-const ProductDetail = () => {
+type CatRef = { _id: string; name: string; slug: string };
+
+// local helpers that avoid `any`
+const labelOf = (ref?: CatRef | null): string => ref?.name ?? "—";
+
+export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
 
   const {
@@ -22,10 +28,25 @@ const ProductDetail = () => {
   } = useProductStore();
 
   useEffect(() => {
-    if (id) {
-      fetchProductById(id);
-    }
+    if (id) fetchProductById(id);
   }, [id, fetchProductById]);
+
+  // subSubcategory might not be in your store type; access safely
+  const subSubName = useMemo(() => {
+    // narrow without `any`
+    const maybe = product as unknown as { subSubcategory?: CatRef };
+    return maybe?.subSubcategory?.name;
+  }, [product]);
+
+  const categoryPath = useMemo(() => {
+    if (!product) return "";
+    const parts = [
+      product.category?.name,
+      product.subcategory?.name,
+      subSubName,
+    ].filter(Boolean) as string[];
+    return parts.join(" › ");
+  }, [product, subSubName]);
 
   if (loading) {
     return (
@@ -44,18 +65,33 @@ const ProductDetail = () => {
   }
 
   return (
-    <Paper sx={{ padding: 3 }}>
+    <Paper sx={{ p: 3 }}>
       <Typography variant="h5" gutterBottom>
         {product.productName}
       </Typography>
 
-      <Typography variant="subtitle1" gutterBottom>
-        Category: <Chip label={product.category} size="small" />
-      </Typography>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
+        <Typography variant="subtitle1">Category:</Typography>
+        <Chip label={labelOf(product.category)} size="small" />
+        {product.subcategory && (
+          <Chip label={labelOf(product.subcategory)} size="small" />
+        )}
+        {subSubName && <Chip label={subSubName} size="small" />}
+      </Stack>
 
+      {!!categoryPath && (
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+          Path: {categoryPath}
+        </Typography>
+      )}
+
+      {/* Prefer productDetails if it exists (HTML); otherwise use description */}
       <Typography
         variant="body1"
-        dangerouslySetInnerHTML={{ __html: product.description }}
+        dangerouslySetInnerHTML={{
+          __html: (product as unknown as { productDetails?: string })
+            .productDetails || product.description,
+        }}
       />
 
       <Divider sx={{ my: 2 }} />
@@ -67,9 +103,15 @@ const ProductDetail = () => {
         <Grid item xs={6}>
           <Typography>Discount: ₹{product.discount}</Typography>
         </Grid>
-        <Grid item xs={6}>
-          <Typography>Purchase Price: ₹{product.purchasePrice}</Typography>
-        </Grid>
+        {"purchasePrice" in product && (
+          <Grid item xs={6}>
+            <Typography>
+              Purchase Price: ₹
+              {(product as unknown as { purchasePrice?: number })
+                .purchasePrice ?? 0}
+            </Typography>
+          </Grid>
+        )}
         <Grid item xs={6}>
           <Typography>Returnable: {product.isReturn ? "Yes" : "No"}</Typography>
         </Grid>
@@ -90,11 +132,11 @@ const ProductDetail = () => {
       <Typography variant="h6" gutterBottom>
         Sizes:
       </Typography>
-      {product.sizes.length > 0 ? (
-        product.sizes.map((size, index) => (
+      {product.sizes?.length ? (
+        product.sizes.map((s, i) => (
           <Chip
-            key={index}
-            label={`${size.size} - Qty: ${size.quantity}`}
+            key={i}
+            label={`${s.size} • Qty: ${s.quantity}`}
             sx={{ m: 0.5 }}
           />
         ))
@@ -107,7 +149,7 @@ const ProductDetail = () => {
       <Typography variant="h6" gutterBottom>
         Images:
       </Typography>
-      {product.image && product.image.length > 0 ? (
+      {product.image?.length ? (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 1 }}>
           {product.image.map((img, i) => (
             <img
@@ -125,6 +167,4 @@ const ProductDetail = () => {
       )}
     </Paper>
   );
-};
-
-export default ProductDetail;
+}

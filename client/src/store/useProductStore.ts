@@ -1,4 +1,3 @@
-// src/store/productStore.ts
 import axios from "axios";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -9,12 +8,10 @@ export interface Size {
   size: string;
   quantity: string;
 }
-
 export interface Color {
   name: string;
   hex: string;
 }
-
 export interface Product {
   _id: string;
   productName: string;
@@ -23,7 +20,8 @@ export interface Product {
   price: number;
   discount: number;
   purchasePrice: number;
-  category: string;
+  category: { _id: string; name: string; slug: string };
+  subcategory?: { _id: string; name: string; slug: string };
   note?: string;
   sizes: Size[];
   isReturn: boolean;
@@ -31,33 +29,41 @@ export interface Product {
   image?: string[];
 }
 
-/* ---------- Store Interface ---------- */
+/** Strongly typed form data */
+type FormDataState = {
+  productName: string;
+  description: string;
+  price: string;
+  discount: string;
+  discountPercentage?: string | number;
+  purchasePrice: string;
+
+  categoryId: string;      // <-- used by new backend
+  subcategoryId: string;    // level 2
+  subSubcategoryId?: string; 
+
+  note: string;
+  sizes: Size[];
+  file: File | null;
+  color: string;
+  isReturn: boolean;
+};
+
 interface ProductStore {
-  // form states
-  formData: {
-    productName: string;
-    description: string;
-    price: string;
-    discount: string;
-    discountPercentage?: string | number;
-    purchasePrice: string;
-    category: string;
-    note: string;
-    sizes: Size[];
-    file: File | null;
-    color: string;
-    isReturn: boolean;
-  };
+  formData: FormDataState;
   croppedImages: File[];
   addedColors: Color[];
   inputColor: string;
   matchedColor: Color | null;
 
-  // form actions
-  setFormData: (name: string, value: string | boolean) => void;
+  setFormData: <K extends keyof FormDataState>(
+    name: K,
+    value: FormDataState[K]
+  ) => void;
   addSize: () => void;
   removeSize: (index: number) => void;
   updateSize: (index: number, key: keyof Size, value: string) => void;
+
   setCroppedImages: (files: File[]) => void;
   setInputColor: (val: string) => void;
   setMatchedColor: (color: Color | null) => void;
@@ -65,13 +71,11 @@ interface ProductStore {
   removeColor: (index: number) => void;
   resetForm: () => void;
 
-  // CRUD states
   products: Product[];
   selectedProduct: Product | null;
   loading: boolean;
   error: string | null;
 
-  // CRUD actions
   fetchProducts: () => Promise<void>;
   fetchProductById: (id: string) => Promise<void>;
   addProduct: (data: FormData) => Promise<void>;
@@ -80,24 +84,26 @@ interface ProductStore {
   clearSelected: () => void;
 }
 
-/* ---------- Store Implementation ---------- */
+const initialFormData: FormDataState = {
+  productName: "",
+  description: "",
+  price: "",
+  discount: "",
+  discountPercentage: undefined,
+  purchasePrice: "",
+  categoryId: "",
+  subcategoryId: "",
+  note: "",
+  sizes: [{ size: "", quantity: "" }],
+  file: null,
+  color: "",
+  isReturn: true,
+};
+
 export const useProductStore = create<ProductStore>()(
   persist(
-    (set) => ({
-      /* ----- Form state ----- */
-      formData: {
-        productName: "",
-        description: "",
-        price: "",
-        discount: "",
-        purchasePrice: "",
-        category: "",
-        note: "",
-        sizes: [{ size: "", quantity: "" }],
-        file: null,
-        color: "",
-        isReturn: true,
-      },
+    (set, get) => ({
+      formData: { ...initialFormData },
       croppedImages: [],
       addedColors: [],
       inputColor: "",
@@ -106,40 +112,47 @@ export const useProductStore = create<ProductStore>()(
       setFormData: (name, value) =>
         set((state) => {
           if (name === "discount") {
-            const price = parseFloat(state.formData.price);
-            const discountAmount = parseFloat(value as string);
+            const priceNum = parseFloat(state.formData.price);
+            const discountAmount = parseFloat(String(value));
             const discountPercentage =
-              !isNaN(price) && price > 0
-                ? ((discountAmount / price) * 100).toFixed(2)
+              !isNaN(priceNum) && priceNum > 0
+                ? ((discountAmount / priceNum) * 100).toFixed(2)
                 : 0;
-
             return {
               formData: {
                 ...state.formData,
-                discount: value as string,
+                discount: String(value),
                 discountPercentage,
               },
             };
           }
-
           if (name === "price") {
-            const price = parseFloat(value as string);
+            const priceNum = parseFloat(String(value));
             const discountAmount = parseFloat(state.formData.discount);
             const discountPercentage =
-              !isNaN(price) && price > 0 && !isNaN(discountAmount)
-                ? ((discountAmount / price) * 100).toFixed(2)
+              !isNaN(priceNum) && priceNum > 0 && !isNaN(discountAmount)
+                ? ((discountAmount / priceNum) * 100).toFixed(2)
                 : 0;
-
             return {
               formData: {
                 ...state.formData,
-                price: value as string,
+                price: String(value),
                 discountPercentage,
               },
             };
           }
-
-          return { formData: { ...state.formData, [name]: value } };
+          if (name === "categoryId") {
+            return {
+              formData: {
+                ...state.formData,
+                categoryId: value as string,
+                subcategoryId: "",
+              },
+            };
+          }
+          return {
+            formData: { ...state.formData, [name]: value },
+          };
         }),
 
       addSize: () =>
@@ -149,7 +162,6 @@ export const useProductStore = create<ProductStore>()(
             sizes: [...state.formData.sizes, { size: "", quantity: "" }],
           },
         })),
-
       removeSize: (index) =>
         set((state) => ({
           formData: {
@@ -157,7 +169,6 @@ export const useProductStore = create<ProductStore>()(
             sizes: state.formData.sizes.filter((_, i) => i !== index),
           },
         })),
-
       updateSize: (index, key, value) =>
         set((state) => {
           const sizes = [...state.formData.sizes];
@@ -179,42 +190,27 @@ export const useProductStore = create<ProductStore>()(
               }
             : state
         ),
-
       removeColor: (index) =>
         set((state) => {
-          const newColors = [...state.addedColors];
-          newColors.splice(index, 1);
-          return { addedColors: newColors };
+          const next = [...state.addedColors];
+          next.splice(index, 1);
+          return { addedColors: next };
         }),
 
       resetForm: () =>
         set({
-          formData: {
-            productName: "",
-            description: "",
-            price: "",
-            discount: "",
-            purchasePrice: "",
-            category: "",
-            note: "",
-            sizes: [{ size: "", quantity: "" }],
-            file: null,
-            color: "",
-            isReturn: true,
-          },
+          formData: { ...initialFormData },
           croppedImages: [],
           addedColors: [],
           inputColor: "",
           matchedColor: null,
         }),
 
-      /* ----- CRUD state ----- */
       products: [],
       selectedProduct: null,
       loading: false,
       error: null,
 
-      /* ----- CRUD actions ----- */
       fetchProducts: async () => {
         set({ loading: true, error: null });
         try {
@@ -222,12 +218,11 @@ export const useProductStore = create<ProductStore>()(
           const res = await api.get("/admin/product/getProducts", {
             headers: { Authorization: `Bearer ${token}` },
           });
-          set({ products: res.data?.products || [] });
+          set({ products: (res.data?.products as Product[]) || [] });
         } catch (err: unknown) {
           const message = axios.isAxiosError(err)
             ? err.response?.data?.message || err.message
             : "Failed to fetch products";
-          console.error("Error fetching products:", err);
           set({ error: message });
         } finally {
           set({ loading: false });
@@ -241,12 +236,11 @@ export const useProductStore = create<ProductStore>()(
           const res = await api.get(`/admin/product/productDetails?id=${id}`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          set({ selectedProduct: res.data.product });
+          set({ selectedProduct: res.data.product as Product });
         } catch (err: unknown) {
           const message = axios.isAxiosError(err)
             ? err.response?.data?.message || err.message
             : "Failed to fetch product";
-          console.error("Error fetching product:", err);
           set({ error: message });
         } finally {
           set({ loading: false });
@@ -263,12 +257,11 @@ export const useProductStore = create<ProductStore>()(
               "Content-Type": "multipart/form-data",
             },
           });
-          await useProductStore.getState().fetchProducts(); // refresh
+          await get().fetchProducts();
         } catch (err: unknown) {
           const message = axios.isAxiosError(err)
             ? err.response?.data?.message || err.message
             : "Failed to add product";
-          console.error("Error adding product:", err);
           set({ error: message });
         } finally {
           set({ loading: false });
@@ -285,12 +278,11 @@ export const useProductStore = create<ProductStore>()(
               "Content-Type": "multipart/form-data",
             },
           });
-          await useProductStore.getState().fetchProducts(); // refresh
+          await get().fetchProducts();
         } catch (err: unknown) {
           const message = axios.isAxiosError(err)
             ? err.response?.data?.message || err.message
             : "Failed to update product";
-          console.error("Error updating product:", err);
           set({ error: message });
         } finally {
           set({ loading: false });
@@ -311,7 +303,6 @@ export const useProductStore = create<ProductStore>()(
           const message = axios.isAxiosError(err)
             ? err.response?.data?.message || err.message
             : "Failed to delete product";
-          console.error("Error deleting product:", err);
           set({ error: message });
         } finally {
           set({ loading: false });
@@ -321,7 +312,24 @@ export const useProductStore = create<ProductStore>()(
       clearSelected: () => set({ selectedProduct: null }),
     }),
     {
-      name: "product-store", // persist key
+      name: "product-store",
+      version: 2,
+      migrate: (persisted: unknown, from) => {
+        if (!persisted || typeof persisted !== "object") return { formData: { ...initialFormData } };
+        if (from < 2) {
+          const p = persisted as { formData?: Partial<FormDataState> };
+          return {
+            ...persisted,
+            formData: {
+              ...initialFormData,
+              ...(p.formData || {}),
+              categoryId: p.formData?.categoryId ?? "",
+              subcategoryId: p.formData?.subcategoryId ?? "",
+            },
+          };
+        }
+        return persisted;
+      },
     }
   )
 );

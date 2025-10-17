@@ -3,66 +3,87 @@ import Product from "../models/Product.js";
 import sanitizedConfig from "../config.js";
 import { uploadFileToS3 } from "../utils/s3Utils.js";
 
+/** helper: parse sizes from form-data */
+const parseSizes = (raw) => {
+  const arr = typeof raw === "string" ? JSON.parse(raw) : raw;
+  if (!Array.isArray(arr)) throw new Error("Invalid sizes format");
+  const out = arr
+    .map((s) => ({
+      size: String(s.size || "").trim(),
+      quantity: Number(s.quantity),
+    }))
+    .filter((s) => s.size && !isNaN(s.quantity) && s.quantity > 0);
+
+  if (out.length === 0) throw new Error("Empty sizes");
+  return out;
+};
+
+/** helper: parse colors[] from form-data (colors[0], colors[1]...) */
+const parseColors = (body) => {
+  const keys = Object.keys(body).filter((k) => /^colors\[\d+\]$/.test(k));
+  if (keys.length === 0) return [];
+  return keys
+    .sort((a, b) => {
+      const ia = Number(a.match(/\[(\d+)\]/)[1]);
+      const ib = Number(b.match(/\[(\d+)\]/)[1]);
+      return ia - ib;
+    })
+    .map((k) => String(body[k]));
+};
+
 // @desc    Add Product (admin)
 // @route   POST /api/admin/product/addProduct
-// @access  lead
 export const addProductController = asyncHandler(async (req, res) => {
   try {
-    // Strip [Object: null prototype]
+    // normalize form-data body safely
     const body = JSON.parse(JSON.stringify(req.body));
 
-    // === FIELD EXTRACTION & COERCION ===
+    // === FIELD EXTRACTION ===
     const productName = body.productName?.trim();
     const description = body.description?.trim();
     const price = Number(body.price);
     const discount = Number(body.discount || 0);
     const purchasePrice = Number(body.purchasePrice || 0);
-    const category = body.category; // schema expects Object, not string
+
+    // incoming ids from UI
+    const categoryId = body.categoryId || null;             // level 1 (required)
+    const subcategoryId = body.subcategoryId || null;       // level 2 (optional)
+    const subSubcategoryId = body.subSubcategoryId || null; // level 3 (optional)
+
     const note = body.note?.trim() || "";
     const productDetails = body.productDetails || "";
     const isReturn = body.isReturn === "true" || body.isReturn === true;
     const color = body.color || "";
 
+    // colors array (colors[0], colors[1], ...)
+    const colors = parseColors(body);
+
     // === VALIDATION ===
-    if (!productName || !description || !price || !category) {
+    if (!productName || !description || !price || !categoryId) {
       return res.status(400).json({
         message:
-          "Missing required fields: productName, description, price, or category.",
+          "Missing required fields: productName, description, price, or categoryId.",
       });
     }
-
     if (isNaN(price) || price <= 0) {
       return res
         .status(400)
         .json({ message: "Price must be a valid number greater than 0." });
     }
+    if (isNaN(purchasePrice) || purchasePrice <= 0) {
+      return res
+        .status(400)
+        .json({ message: "Purchase Price must be a valid number greater than 0." });
+    }
 
     // === SIZES ===
     let parsedSizes = [];
     try {
-      const rawSizes = body.sizes;
-      const sizesArray =
-        typeof rawSizes === "string" ? JSON.parse(rawSizes) : rawSizes;
-
-      if (!Array.isArray(sizesArray)) throw new Error();
-
-      parsedSizes = sizesArray
-        .map((s) => ({
-          size: s.size?.trim(),
-          quantity: Number(s.quantity),
-        }))
-        .filter((s) => s.size && !isNaN(s.quantity) && s.quantity > 0);
-
-      if (parsedSizes.length === 0) {
-        return res.status(400).json({
-          message:
-            "Each size must include a valid 'size' and a numeric 'quantity'.",
-        });
-      }
+      parsedSizes = parseSizes(body.sizes);
     } catch (err) {
       return res.status(400).json({
         message:
-          "Invalid sizes format. Expected an array of { size, quantity }. ",
+          "Invalid sizes format. Expected an array of { size, quantity } with positive quantity.",
       });
     }
 
@@ -93,10 +114,16 @@ export const addProductController = asyncHandler(async (req, res) => {
       price,
       discount,
       purchasePrice,
-      category,
+
+      // map ids -> model fields
+      category: categoryId || null,
+      subcategory: subcategoryId || null,
+      subSubcategory: subSubcategoryId || null,
+
       note,
       sizes: parsedSizes,
       color,
+      colors,
       productDetails,
       isReturn,
       image: imageUrls,
@@ -115,8 +142,7 @@ export const addProductController = asyncHandler(async (req, res) => {
 });
 
 // @desc    Get paginated list of products
-// @route   GET /api/products
-// @access  Public
+// @route   GET /api/admin/product/getProducts
 export const getProductsController = asyncHandler(async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -124,10 +150,13 @@ export const getProductsController = asyncHandler(async (req, res) => {
     const skip = (page - 1) * limit;
 
     const products = await Product.find({ isActive: true })
+      .populate("category", "name slug")
+      .populate("subcategory", "name slug")
+      .populate("subSubcategory", "name slug")
       .skip(skip)
       .limit(limit);
 
-    const totalProducts = await Product.countDocuments();
+    const totalProducts = await Product.countDocuments({ isActive: true });
     const totalPages = Math.ceil(totalProducts / limit);
 
     res.status(200).json({
@@ -143,20 +172,18 @@ export const getProductsController = asyncHandler(async (req, res) => {
 });
 
 // @desc    Get product details by ID
-// @route   GET /api/product/productDetails/:id
-// @access  Public
+// @route   GET /api/admin/product/productDetails?id=...
 export const getProductByIdController = asyncHandler(async (req, res) => {
   try {
     const { id } = req.query;
-    console.log(id, "idididididdidididididididi");
-
-    const product = await Product.findById(id);
+    const product = await Product.findById(id)
+      .populate("category", "name slug")
+      .populate("subcategory", "name slug")
+      .populate("subSubcategory", "name slug");
 
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
-
-    console.log(product, "productproductproductproductproduct");
     res.status(200).json({ product });
   } catch (error) {
     console.error(error);
@@ -165,25 +192,20 @@ export const getProductByIdController = asyncHandler(async (req, res) => {
 });
 
 // @route   PUT /api/admin/product/updateProduct/:id
-// @access  lead
 export const updateProductController = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Parse form-data safely
     const body = JSON.parse(JSON.stringify(req.body));
 
-    // Existing images from frontend (those not deleted)
+    // images
     let existingImages = [];
     if (body.existingImages) {
-      if (Array.isArray(body.existingImages)) {
-        existingImages = body.existingImages;
-      } else {
-        existingImages = [body.existingImages]; // handle single string
-      }
+      existingImages = Array.isArray(body.existingImages)
+        ? body.existingImages
+        : [body.existingImages];
     }
 
-    // Upload new files (if any)
     let newImageUrls = [];
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
@@ -195,26 +217,45 @@ export const updateProductController = asyncHandler(async (req, res) => {
       }
     }
 
-    // Merge old + new
     const finalImages = [...existingImages, ...newImageUrls];
 
-    // Prepare update data
+    // map incoming ids if present
     const updateData = {
       ...body,
       image: finalImages,
     };
 
-    const updatedProduct = await Product.findByIdAndUpdate(id, updateData, {
+    if (body.categoryId !== undefined) updateData.category = body.categoryId || null;
+    if (body.subcategoryId !== undefined) updateData.subcategory = body.subcategoryId || null;
+    if (body.subSubcategoryId !== undefined) updateData.subSubcategory = body.subSubcategoryId || null;
+
+    // sizes (optional)
+    if (body.sizes) {
+      try {
+        updateData.sizes = parseSizes(body.sizes);
+      } catch {
+        return res.status(400).json({
+          message:
+            "Invalid sizes format. Expected an array of { size, quantity } with positive quantity.",
+        });
+      }
+    }
+
+    // colors (optional)
+    const colors = parseColors(body);
+    if (colors.length) updateData.colors = colors;
+
+    const updated = await Product.findByIdAndUpdate(id, updateData, {
       new: true,
     });
 
-    if (!updatedProduct) {
+    if (!updated) {
       return res.status(404).json({ message: "Product not found" });
     }
 
     res.status(200).json({
       message: "Product updated successfully",
-      product: updatedProduct,
+      product: updated,
     });
   } catch (error) {
     console.error("Error in updateProductController:", error);
@@ -222,9 +263,7 @@ export const updateProductController = asyncHandler(async (req, res) => {
   }
 });
 
-// @desc    Soft delete product by setting isActive to false
 // @route   DELETE /api/admin/product/deleteProduct/:id
-// @access  lead
 export const deleteProductController = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;

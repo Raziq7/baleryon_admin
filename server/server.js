@@ -8,6 +8,7 @@ import path from "path";
 import connect from "./connect/connect.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddlware.js";
 import productRouter from "./routes/productRouter.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
 import userManagmentRouter from "./routes/userManagmentRouter.js";
 import authRouter from "./routes/authRouter.js";
 import orderRoutes from "./routes/orderRoutes.js";
@@ -37,6 +38,7 @@ connect().then(() => console.log("DB connected"));
 
 app.use("/api/auth/", authRouter);
 app.use("/api/admin/product/", productRouter);
+app.use("/api/admin/category", categoryRoutes);
 
 // user managment router
 app.use("/api/admin/userManagment/", userManagmentRouter);

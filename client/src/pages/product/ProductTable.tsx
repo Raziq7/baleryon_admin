@@ -7,24 +7,88 @@ import EditIcon from "@mui/icons-material/Edit";
 import IconButton from "@mui/material/IconButton";
 import { useProductStore } from "../../store/useProductStore";
 
-interface Product {
+/** Match the shape coming from your store/response, but keep it permissive */
+interface CatRef {
   _id: string;
-  productName: string;
-  description: string;
-  price: number;
-  discount: number;
-  category: string;
+  name: string;
+  slug: string;
 }
 
+function nameOf(cat?: CatRef | null): string {
+  return cat?.name ?? "";
+}
+
+function getCategoryPath(row: Row): string {
+  return [
+    nameOf(row.category),
+    nameOf(row.subcategory),
+    nameOf(row.subSubcategory),
+  ]
+    .filter(Boolean)
+    .join(" › ");
+}
+
+type Row = {
+  _id: string;
+  productName: string;
+  description: string; // HTML snippet
+  price?: number;
+  discount?: number;
+  note?: string;
+  isReturn?: boolean;
+  isActive?: boolean;
+
+  category?: CatRef;
+  subcategory?: CatRef;
+  subSubcategory?: CatRef;
+};
+
+// function nameOf(ref: CatRef): string {
+//   if (!ref) return "";
+//   if (typeof ref === "string") return ref;
+//   return ref.name ?? "";
+// }
+
+// function getCategoryPath(row: Row): string {
+//   return [nameOf(row.category), nameOf(row.subcategory), nameOf(row.subSubcategory)]
+//     .filter(Boolean)
+//     .join(" › ");
+// }
+
+// REMOVE this import (it's not needed and causes mismatches)
+// import { GridValueFormatter } from "@mui/x-data-grid";
+
+// Use a permissive formatter that always returns string
+const inrFormatter = (value: unknown): string => {
+  let n: number;
+
+  if (typeof value === "number") {
+    n = value;
+  } else if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    n = Number.isNaN(parsed) ? NaN : parsed;
+  } else {
+    n = NaN;
+  }
+
+  return Number.isFinite(n)
+    ? `₹ ${n.toLocaleString("en-IN", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`
+    : "";
+};
+
+/** Component */
 export default function DataTable() {
   const { products, fetchProducts, deleteProduct, loading } = useProductStore();
   const [paginationModel, setPaginationModel] = React.useState({
     page: 0,
     pageSize: 5,
   });
-  const [isMouseOver, setIsMouseOver] = React.useState({
-    index: "",
-    value: false,
+  const [hover, setHover] = React.useState<{ id: string; on: boolean }>({
+    id: "",
+    on: false,
   });
 
   const navigate = useNavigate();
@@ -40,39 +104,41 @@ export default function DataTable() {
   };
 
   const handleRowClick = React.useCallback(
-    (row: Product) => {
+    (row: Row) => {
       navigate(`/productManagment/productDetail/${row._id}`);
     },
     [navigate]
   );
 
-  const columns: GridColDef<Product>[] = [
+  /** Safely project your store products into our Row type */
+  const rows = React.useMemo<ReadonlyArray<Row>>(
+    () => products.map((p) => ({ ...p })) as ReadonlyArray<Row>,
+    [products]
+  );
+
+  const columns: GridColDef<Row>[] = [
     {
       field: "slno",
       headerName: "SLNo",
-      width: 100,
-      valueGetter: (_, row) => products.findIndex((p) => p._id === row._id) + 1,
+      width: 90,
+      sortable: false,
+      valueGetter: (_v, row) => rows.findIndex((p) => p._id === row._id) + 1,
     },
     {
       field: "productName",
       headerName: "Product name",
-      width: 160,
+      width: 220,
       renderCell: (params) => (
         <div
           onClick={() => handleRowClick(params.row)}
-          onMouseOver={() =>
-            setIsMouseOver({ index: params.row._id, value: true })
-          }
-          onMouseOut={() =>
-            setIsMouseOver({ index: params.row._id, value: false })
-          }
+          onMouseEnter={() => setHover({ id: params.row._id, on: true })}
+          onMouseLeave={() => setHover({ id: params.row._id, on: false })}
           style={{
             cursor: "pointer",
             textDecoration:
-              isMouseOver?.value && isMouseOver?.index === params.row._id
-                ? "underline"
-                : "",
+              hover.on && hover.id === params.row._id ? "underline" : "none",
           }}
+          title={String(params.value ?? "")}
         >
           {params.value}
         </div>
@@ -81,47 +147,73 @@ export default function DataTable() {
     {
       field: "description",
       headerName: "Description",
-      width: 200,
-      renderCell: (params: GridRenderCellParams<Product, string>) => (
+      width: 280,
+      renderCell: (params: GridRenderCellParams<Row, string>) => (
         <div
           dangerouslySetInnerHTML={{ __html: params.value ?? "" }}
           style={{
             overflow: "hidden",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            maxWidth: 180,
+            maxWidth: 260,
           }}
+          title={params.value ?? ""}
         />
       ),
     },
-    { field: "price", headerName: "Product Price", type: "number", width: 160 },
+    {
+      field: "price",
+      headerName: "Price",
+      type: "number",
+      width: 140,
+      valueGetter: (_v, row) => (row.price == null ? null : Number(row.price)), // ensure number
+      valueFormatter: inrFormatter, // returns string
+    },
     {
       field: "discount",
-      headerName: "Discount Price",
+      headerName: "Discount",
       type: "number",
-      width: 160,
+      width: 140,
+      valueGetter: (_v, row) =>
+        row.discount == null ? null : Number(row.discount),
+      valueFormatter: inrFormatter,
     },
-    { field: "category", headerName: "Category", width: 160 },
+    {
+      field: "categoryPath",
+      headerName: "Category Path",
+      flex: 1,
+      minWidth: 220,
+      sortable: false,
+      valueGetter: (_v, row) => getCategoryPath(row),
+      renderCell: (params) => (
+        <span title={String(params.value ?? "")}>
+          {String(params.value ?? "")}
+        </span>
+      ),
+    },
     {
       field: "actions",
       headerName: "Actions",
-      width: 100,
+      width: 110,
       sortable: false,
-      renderCell: (params: GridRenderCellParams<Product>) => (
+      filterable: false,
+      renderCell: (params) => (
         <>
           <IconButton
             onClick={() => handleDelete(params.row._id)}
             color="error"
+            size="small"
           >
-            <DeleteIcon />
+            <DeleteIcon fontSize="small" />
           </IconButton>
           <IconButton
             onClick={() =>
               navigate(`/productManagment/editProduct/${params.row._id}`)
             }
             color="primary"
+            size="small"
           >
-            <EditIcon />
+            <EditIcon fontSize="small" />
           </IconButton>
         </>
       ),
@@ -129,13 +221,12 @@ export default function DataTable() {
   ];
 
   return (
-    <Paper sx={{ height: 400, width: "100%" }}>
+    <Paper sx={{ height: 520, width: "100%" }}>
       <DataGrid
-        rows={products}
+        rows={rows}
         columns={columns}
         getRowId={(row) => row._id}
-        pageSizeOptions={[5, 10]}
-        // onRowClick={handleRowClick}
+        pageSizeOptions={[5, 10, 25]}
         loading={loading}
         sx={{ border: 0, cursor: "pointer" }}
         initialState={{ pagination: { paginationModel } }}

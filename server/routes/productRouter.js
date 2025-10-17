@@ -1,38 +1,35 @@
 import express from "express";
-import multer from "multer"; // For handling multipart form data (file uploads)
-import path from 'path';
+import multer from "multer";
+import path from "path";
 
-import { addProductController, deleteProductController, getProductByIdController, getProductsController, updateProductController } from "../controller/productController.js";
-import {protect} from "../middlewares/authMiddleware.js";
+import {
+  addProductController,
+  deleteProductController,
+  getProductByIdController,
+  getProductsController,
+  updateProductController,
+} from "../controller/productController.js";
+import { protect } from "../middlewares/authMiddleware.js";
 
-var router = express.Router();
+const router = express.Router();
 
-// Configure Multer for file uploads (optional, adjust as needed)
-// Multer storage configuration
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
+  destination: (req, file, cb) => cb(null, "uploads/"),
+  filename: (req, file, cb) =>
+    cb(
+      null,
+      file.fieldname + "-" + Date.now() + "-" + Math.round(Math.random() * 1e9) + path.extname(file.originalname)
+    ),
 });
+const upload = multer({ storage });
 
-const upload = multer({ storage: storage });
+router.post("/addProduct", upload.array("files"), addProductController);
 
-// LOGIN AUTHENTICATION
-router.route("/addProduct").post(upload.array('files'), addProductController);
+router.get("/getProducts", protect, getProductsController);
+router.get("/productDetails", getProductByIdController);
 
-// GET PRODUCTS
-router.route("/getProducts").get(protect,getProductsController);
+router.put("/updateProduct/:id", upload.array("files"), updateProductController);
 
-router.route("/productDetails").get(getProductByIdController)
-
-// UPDATE PRODUCT
-router.route("/updateProduct/:id").put(upload.array('files'), updateProductController);
-
-// DELETE PRODUCT
-router.route("/deleteProduct").delete(protect,deleteProductController);
+router.delete("/deleteProduct/:id", protect, deleteProductController);
 
 export default router;
